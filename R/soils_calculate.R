@@ -136,7 +136,8 @@ estimate_bulkdensity <- function(theta_saturated, gravel_volume) {
 #'
 #' @export
 calc_BareSoilEvapCoefs <- function(layers_depth, sand, clay,
-  depth_max_bs_evap_cm = 15) {
+  depth_max_bs_evap_cm = 15
+) {
 
   #--- If inputs are not site x layers, then convert them into 1 site x layers
   if (is.null(dim(sand))) {
@@ -146,8 +147,12 @@ calc_BareSoilEvapCoefs <- function(layers_depth, sand, clay,
     clay <- matrix(clay, nrow = 1, ncol = length(clay))
   }
   if (is.null(dim(layers_depth))) {
-    layers_depth <- matrix(layers_depth, nrow = dim(sand)[1],
-      ncol = length(layers_depth), byrow = TRUE)
+    layers_depth <- matrix(
+      data = layers_depth,
+      nrow = dim(sand)[1],
+      ncol = length(layers_depth),
+      byrow = TRUE
+    )
   }
 
   #--- Test inputs
@@ -171,12 +176,14 @@ calc_BareSoilEvapCoefs <- function(layers_depth, sand, clay,
     is.numeric(unlist(clay)),
     clay >= 0 & clay <= 1 | has_NAs_pooled_at_depth(clay),
     sand_and_clay <= 1 | has_NAs_pooled_at_depth(sand_and_clay),
-    is.finite(depth_max_bs_evap_cm) & depth_max_bs_evap_cm >= 0)
+    is.finite(depth_max_bs_evap_cm) & depth_max_bs_evap_cm >= 0
+  )
 
 
   #--- Calculate
 
   depth_min_bs_evap <- min(layers_depth[, 1], na.rm = TRUE)
+
   if (depth_min_bs_evap > depth_max_bs_evap_cm) {
     # all sites have first layer with coeff = 1
     res <- array(1, dim = dim(sand))
@@ -184,17 +191,21 @@ calc_BareSoilEvapCoefs <- function(layers_depth, sand, clay,
     return(res)
   }
 
-  lyrs_max_bs_evap <- t(apply(layers_depth, 1, function(x) {
-    xdm <- depth_max_bs_evap_cm - x
-    i0 <- abs(xdm) < SFSW2_glovars[["tol"]]
-    ld <- if (any(i0, na.rm = TRUE)) {
-      which(i0)
-    } else {
-      temp <- which(xdm < 0)
-      if (length(temp) > 0) temp[1] else length(x)
+  lyrs_max_bs_evap <- t(apply(
+    X = layers_depth,
+    MARGIN = 1,
+    FUN = function(x) {
+      xdm <- depth_max_bs_evap_cm - x
+      i0 <- abs(xdm) < rSW2_glovars[["tol"]]
+      ld <- if (any(i0, na.rm = TRUE)) {
+        which(i0)
+      } else {
+        tmp <- which(xdm < 0)
+        if (length(tmp) > 0) tmp[1] else length(x)
+      }
+      c(diff(c(0, x))[seq_len(ld)], rep(0L, length(x) - ld))
     }
-    c(diff(c(0, x))[seq_len(ld)], rep(0L, length(x) - ld))
-  }))
+  ))
   ldepth_max_bs_evap <- rowSums(lyrs_max_bs_evap)
 
   sand_mean <- rowSums(lyrs_max_bs_evap * sand, na.rm = TRUE) /
@@ -203,26 +214,34 @@ calc_BareSoilEvapCoefs <- function(layers_depth, sand, clay,
     ldepth_max_bs_evap
 
   # equation from re-analysis
-  temp_depth <- 4.1984 + 0.6695 * sand_mean ^ 2 + 168.7603 * clay_mean ^ 2
+  tmp_depth <- 4.1984 + 0.6695 * sand_mean ^ 2 + 168.7603 * clay_mean ^ 2
 
-  depth_bs_evap <- pmin(pmax(temp_depth, depth_min_bs_evap, na.rm = TRUE),
-    depth_max_bs_evap_cm, na.rm = TRUE)
-  lyrs_bs_evap0 <- t(apply(depth_bs_evap - layers_depth, 1, function(x) {
-    i0 <- abs(x) < SFSW2_glovars[["tol"]]
-    ld <- if (any(i0, na.rm = TRUE)) {
-      which(i0)
-    } else {
-      temp <- which(x < 0)
-      if (length(temp) > 0) temp[1] else sum(!is.na(x))
+  depth_bs_evap <- pmin(
+    pmax(tmp_depth, depth_min_bs_evap, na.rm = TRUE),
+    depth_max_bs_evap_cm,
+    na.rm = TRUE
+  )
+
+  lyrs_bs_evap0 <- t(apply(
+    X = depth_bs_evap - layers_depth,
+    MARGIN = 1,
+    FUN = function(x) {
+      i0 <- abs(x) < rSW2_glovars[["tol"]]
+      ld <- if (any(i0, na.rm = TRUE)) {
+        which(i0)
+      } else {
+        tmp <- which(x < 0)
+        if (length(tmp) > 0) tmp[1] else sum(!is.na(x))
+      }
+      ld0 <- max(0, ld - 1)
+
+      c(rep(TRUE, ld0), rep(FALSE, length(x) - ld0))
     }
-    ld0 <- max(0, ld - 1)
-
-    c(rep(TRUE, ld0), rep(FALSE, length(x) - ld0))
-  }))
+  ))
 
   # function made up to match previous cummulative distributions
-  temp_coeff <- 1 - exp(- 5 * layers_depth / depth_bs_evap)
-  temp_coeff[!lyrs_bs_evap0 | is.na(temp_coeff)] <- 1
-  coeff_bs_evap <- round(t(apply(cbind(0, temp_coeff), 1, diff)), 4)
+  tmp_coeff <- 1 - exp(- 5 * layers_depth / depth_bs_evap)
+  tmp_coeff[!lyrs_bs_evap0 | is.na(tmp_coeff)] <- 1
+  coeff_bs_evap <- round(t(apply(cbind(0, tmp_coeff), 1, diff)), 4)
   coeff_bs_evap / rowSums(coeff_bs_evap, na.rm = TRUE)
 }
