@@ -2,6 +2,13 @@
 
 
 #' Calculate start year of simulation period after \var{spin-up}
+#'
+#' @param simstartyr An integer value. The calendar year when the \pkg{SOILWAT2}
+#'   was started.
+#' @param spinup_N An integer value. The number of years that are considered
+#'   \var{spinup} for the simulation run.
+#'
+#'
 #' @export
 getStartYear <- function(simstartyr, spinup_N = 1L) {
   as.integer(simstartyr + spinup_N)

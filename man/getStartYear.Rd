@@ -6,6 +6,13 @@
 \usage{
 getStartYear(simstartyr, spinup_N = 1L)
 }
+\arguments{
+\item{simstartyr}{An integer value. The calendar year when the \pkg{SOILWAT2}
+was started.}
+
+\item{spinup_N}{An integer value. The number of years that are considered
+\var{spinup} for the simulation run.}
+}
 \description{
 Calculate start year of simulation period after \var{spin-up}
 }
