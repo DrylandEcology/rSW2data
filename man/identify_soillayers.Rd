@@ -8,7 +8,9 @@ a soil depth or a soil band.}
 identify_soillayers(depths, sdepth)
 }
 \arguments{
-\item{A}{numeric vector. The lower depths of soil layers,
+\item{depths}{A numeric vector of length one or two.}
+
+\item{sdepth}{A numeric vector. The lower depths of soil layers,
 sorted by increasing depth in a consistent unit.}
 }
 \description{

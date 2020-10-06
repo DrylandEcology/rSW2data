@@ -15,7 +15,7 @@ Determine soil layer widths from depth profile
 }
 \examples{
 depths_bottom <- c(10, 30, 50, 100)
-widths <- getLayersWidth(depths)
+widths <- getLayersWidth(depths_bottom)
 
 data.frame(
   layer_depth_top = depths_bottom - widths,

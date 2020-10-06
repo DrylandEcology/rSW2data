@@ -5,7 +5,7 @@
 #'
 #' @examples
 #' depths_bottom <- c(10, 30, 50, 100)
-#' widths <- getLayersWidth(depths)
+#' widths <- getLayersWidth(depths_bottom)
 #'
 #' data.frame(
 #'   layer_depth_top = depths_bottom - widths,
@@ -23,7 +23,7 @@ getLayersWidth <- function(layers_depth) {
 #'
 #' @param depths A numeric vector of length two. The upper and lower depth
 #'   bound that should be adjusted.
-#' @param im_depth A numeric value. The depth of a restriction.
+#' @param imp_depth A numeric value. The depth of a restriction.
 #' @param sdepths A numeric vector. The lower depths of soil layers,
 #'   sorted by increasing depth in a consistent unit.
 #'
@@ -181,8 +181,8 @@ add_layer_to_soil <- function(x, il, w, method = c("interpolate", "exhaust")) {
 #' Find the soil layer numbers in a soil layer profile that are affected by
 #' a soil depth or a soil band.
 #'
-#' @param A numeric vector of length one or two.
-#' @param A numeric vector. The lower depths of soil layers,
+#' @param depths A numeric vector of length one or two.
+#' @param sdepth A numeric vector. The lower depths of soil layers,
 #'   sorted by increasing depth in a consistent unit.
 #'
 #' @examples

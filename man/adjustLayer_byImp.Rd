@@ -10,10 +10,10 @@ adjustLayer_byImp(depths, imp_depth, sdepths)
 \item{depths}{A numeric vector of length two. The upper and lower depth
 bound that should be adjusted.}
 
+\item{imp_depth}{A numeric value. The depth of a restriction.}
+
 \item{sdepths}{A numeric vector. The lower depths of soil layers,
 sorted by increasing depth in a consistent unit.}
-
-\item{im_depth}{A numeric value. The depth of a restriction.}
 
 \item{The}{adjusted values of \code{depths}.}
 }
