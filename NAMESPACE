@@ -2,6 +2,7 @@
 
 export(add_layer_to_soil)
 export(adjustLayer_byImp)
+export(calc_BareSoilEvapCoefs)
 export(calc_weights_from_depths)
 export(calculate_NRCS_soil_depth)
 export(check_POLARIS)
