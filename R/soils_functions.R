@@ -178,7 +178,20 @@ add_layer_to_soil <- function(x, il, w, method = c("interpolate", "exhaust")) {
 }
 
 
-
+#' Find the soil layer numbers in a soil layer profile that are affected by
+#' a soil depth or a soil band.
+#'
+#' @param A numeric vector of length one or two.
+#' @param A numeric vector. The lower depths of soil layers,
+#'   sorted by increasing depth in a consistent unit.
+#'
+#' @examples
+#' depths_bottom <- c(10, 30, 50, 100)
+#' identify_soillayers(5, depths_bottom)
+#' identify_soillayers(c(15, 40), depths_bottom)
+#' identify_soillayers(c(15, 150), depths_bottom)
+#'
+#' @export
 identify_soillayers <- function(depths, sdepth) {
   it <- findInterval(depths, sdepth)
   if (any(is.na(it))) {
