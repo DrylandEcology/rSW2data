@@ -19,6 +19,24 @@ getLayersWidth <- function(layers_depth) {
 }
 
 
+#' Adjust a depth interval by the depth of a possible restriction
+#'
+#' @param depths A numeric vector of length two. The upper and lower depth
+#'   bound that should be adjusted.
+#' @param im_depth A numeric value. The depth of a restriction.
+#' @param sdepths A numeric vector. The lower depths of soil layers,
+#'   sorted by increasing depth in a consistent unit.
+#'
+#' @param The adjusted values of \code{depths}.
+#'
+#' @examples
+#' depths_bottom <- c(10, 30, 50, 100)
+#'
+#' adjustLayer_byImp(c(15, 70), 60, depths_bottom)
+#' adjustLayer_byImp(c(15, 70), 5, depths_bottom)
+#' adjustLayer_byImp(c(15, 70), 150, depths_bottom)
+#'
+#' @export
 adjustLayer_byImp <- function(depths, imp_depth, sdepths) {
   if (any(imp_depth < depths[1])) {
     depths <- imp_depth
