@@ -1,0 +1,40 @@
+Package: rSW2data
+Title: Input data for SOILWAT2 and STEPWAT2 simulation experiments
+Version: 0.0.0.9000
+Authors@R: c(
+  person(
+    "Daniel", "Schlaepfer",
+    email = "danielrschlaepfer@gmail.com",
+    comment = c(ORCID = "0000-0001-9973-2065"),
+    role = c("aut", "cre")))
+Description: Collection of functions to access external data sources and to
+  provide input data for rSOILWAT2, rSFSW2, and rSFSTEP2 simulation experiments.
+Depends:
+    R (>= 3.5.0)
+Imports:
+    curl,
+    methods,
+    rSW2utils,
+    rSW2st,
+    raster,
+    reshape2,
+    sf,
+    sp
+Suggests:
+    FedData,
+    soilDB,
+    utils,
+    testthat,
+    spelling,
+    lintr,
+    covr
+Remotes:
+    github::DrylandEcology/rSW2utils,
+    github::DrylandEcology/rSW2st
+License: GPL-3
+URL: https://github.com/DrylandEcology/rSW2data
+BugReports: https://github.com/DrylandEcology/rSW2data/issues
+Encoding: UTF-8
+LazyData: true
+Language: en-US
+RoxygenNote: 7.1.1

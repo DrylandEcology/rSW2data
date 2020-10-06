@@ -1,0 +1,50 @@
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.d
+*.so
+*.a
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# eclipse project files
+.cproject
+.project
+.settings/
+
+# R stuff
+.RData
+.Rhistory
+.Rapp.history
+.Rproj.user
+
+
+# Package check files
+..Rcheck
+rSW2data.Rcheck
+tests/spelling.Rout.save
+
+# Package build files
+*tar.gz
+*.tgz
+*.zip
+*-Ex.R
+inst/doc
+Meta
+doc
+
+# Locally knitted vignettes
+vignettes/*.pdf
+vignettes/*.html
