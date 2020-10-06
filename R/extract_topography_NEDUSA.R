@@ -44,6 +44,7 @@
 #'   and make sure that gridcells without aspect are correctly encoded.
 #'
 #' @examples
+#' \dontrun{
 #' if (requireNamespace("FedData") && curl::has_internet()) {
 #'   label_ned <- "ned_1s_example"
 #'   path_ned <- "."
@@ -99,6 +100,7 @@
 #'
 #'   # Clean up
 #'   unlink(file.path(path_ned, unlist(filenames_ned_examples)))
+#' }
 #' }
 #'
 #' @export

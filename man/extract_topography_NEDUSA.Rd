@@ -92,6 +92,7 @@ Extract elevation, slope, and aspect from National Elevation Dataset
 }
 
 \examples{
+\dontrun{
 if (requireNamespace("FedData") && curl::has_internet()) {
   label_ned <- "ned_1s_example"
   path_ned <- "."
@@ -147,6 +148,7 @@ if (requireNamespace("FedData") && curl::has_internet()) {
 
   # Clean up
   unlink(file.path(path_ned, unlist(filenames_ned_examples)))
+}
 }
 
 }

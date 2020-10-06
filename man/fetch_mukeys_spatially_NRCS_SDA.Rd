@@ -55,6 +55,7 @@ Spatially query \var{mukey} values for point locations from \var{NRCS}
 web-based \var{SDA} service
 }
 \examples{
+\dontrun{
 if (curl::has_internet()) {
   locations <- matrix(
     data = c(-120.325, -111.245, 39.855, 36.753),
@@ -62,6 +63,7 @@ if (curl::has_internet()) {
   )
 
   fetch_mukeys_spatially_NRCS_SDA(locations)
+}
 }
 
 }

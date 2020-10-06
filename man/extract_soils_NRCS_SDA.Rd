@@ -135,6 +135,7 @@ Extract soil information from the Soil Data Access \var{SDA} service by
 }
 
 \examples{
+\dontrun{
 if (curl::has_internet()) {
   locations <- matrix(
     data = c(-120.325, -111.245, 39.855, 36.753),
@@ -169,6 +170,7 @@ if (curl::has_internet()) {
     progress_bar = TRUE,
     verbose = TRUE
   )
+}
 }
 
 }

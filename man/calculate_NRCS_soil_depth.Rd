@@ -30,6 +30,7 @@ A \code{data.frame} with at least three columns. Each row represents
 Determine soil depth
 }
 \examples{
+\dontrun{
 if (curl::has_internet()) {
   x <- fetch_soils_from_NRCS_SDA(mukeys_unique = c(471168, 1606800))
 
@@ -37,6 +38,7 @@ if (curl::has_internet()) {
 
   x2 <- cbind(x, organic = is_NRCS_horizon_organic(x))
   calculate_NRCS_soil_depth(x2, restrict_by_ec_or_ph = TRUE)
+}
 }
 
 }

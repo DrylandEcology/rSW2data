@@ -44,9 +44,11 @@ create_reference_for_NRCS_SDA <- function() {
 #'   expected_organic = c(FALSE, FALSE, TRUE, TRUE, TRUE, FALSE, NA)
 #' )
 #'
+#' \dontrun{
 #' if (curl::has_internet()) {
 #'   x <- fetch_soils_from_NRCS_SDA(mukeys_unique = c(471168, 1606800))
 #'   is_NRCS_horizon_organic(x)
+#' }
 #' }
 #'
 #' @export
@@ -118,6 +120,7 @@ is_NRCS_horizon_organic <- function(x) {
 #'   Note: currently ignores "dense" layer restrictions
 #'
 #' @examples
+#' \dontrun{
 #' if (curl::has_internet()) {
 #'   x <- fetch_soils_from_NRCS_SDA(mukeys_unique = c(471168, 1606800))
 #'
@@ -125,6 +128,7 @@ is_NRCS_horizon_organic <- function(x) {
 #'
 #'   x2 <- cbind(x, organic = is_NRCS_horizon_organic(x))
 #'   calculate_NRCS_soil_depth(x2, restrict_by_ec_or_ph = TRUE)
+#' }
 #' }
 #'
 #' @export
@@ -357,6 +361,7 @@ calculate_NRCS_soil_depth <- function(x, target_cokeys,
 #' }
 #'
 #' @examples
+#' \dontrun{
 #' if (curl::has_internet()) {
 #'   locations <- matrix(
 #'     data = c(-120.325, -111.245, 39.855, 36.753),
@@ -364,6 +369,7 @@ calculate_NRCS_soil_depth <- function(x, target_cokeys,
 #'   )
 #'
 #'   fetch_mukeys_spatially_NRCS_SDA(locations)
+#' }
 #' }
 #'
 #' @export
@@ -672,6 +678,7 @@ fetch_soils_from_NRCS_SDA <- function(
 #' @seealso \code{\link[soilDB]{fetchSDA}} and \code{\link[soilDB]{SDA_query}}
 #'
 #' @examples
+#' \dontrun{
 #' if (curl::has_internet()) {
 #'   locations <- matrix(
 #'     data = c(-120.325, -111.245, 39.855, 36.753),
@@ -706,6 +713,7 @@ fetch_soils_from_NRCS_SDA <- function(
 #'     progress_bar = TRUE,
 #'     verbose = TRUE
 #'   )
+#' }
 #' }
 #'
 #' @export

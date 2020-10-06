@@ -34,9 +34,11 @@ cbind(
   expected_organic = c(FALSE, FALSE, TRUE, TRUE, TRUE, FALSE, NA)
 )
 
+\dontrun{
 if (curl::has_internet()) {
   x <- fetch_soils_from_NRCS_SDA(mukeys_unique = c(471168, 1606800))
   is_NRCS_horizon_organic(x)
+}
 }
 
 }
