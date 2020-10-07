@@ -6,7 +6,8 @@
 \var{NRCS} for \pkg{SOILWAT2} applications}
 \usage{
 extract_soils_NRCS_SDA(
-  locations,
+  x,
+  crs = 4326,
   mukeys,
   method = c("SSURGO", "STATSGO", "SSURGO_then_STATSGO"),
   remove_organic_horizons = c("none", "all", "at_surface"),
@@ -21,12 +22,23 @@ extract_soils_NRCS_SDA(
 )
 }
 \arguments{
-\item{locations}{A numerical two-dimensional object
+\item{x}{A numerical two-dimensional object
 (a \code{matrix}, \code{array}, or \code{data.frame})
 with longitude/X, latitude/Y as columns;
 a \code{\link[sp:SpatialPoints-class]{sp::SpatialPoints}} object; or
 a \var{sf} object with a point geometry,
 i.e., an object with a class \var{sf} or \var{sfc}.}
+
+\item{crs}{An object which is a \var{crs} or from which one can be derived.
+\code{x} can
+be numeric as a \var{EPSG} number;
+a character string as a \var{wkt};
+a character string as a \var{proj4} (not recommended because outdated);
+or of a class including
+  \code{\link[raster:Raster-classes]{raster::Raster}},
+  \code{\link[sp:Spatial-class]{sp::Spatial}},
+  \code{\link[sp:CRS-class]{sp::CRS}},
+  or a \code{\link[sf]{sf}} or \code{\link[sf]{sfc}} class.}
 
 \item{mukeys}{A character or integer vector. List of soil map unit keys
 for which soil information should be extracted. Provide \code{locations}
@@ -146,20 +158,20 @@ if (curl::has_internet()) {
   extract_soils_NRCS_SDA(mukeys = c(471168, 1606800))
 
   # Example 2: extract soils by geographic location
-  extract_soils_NRCS_SDA(locations = locations)
+  extract_soils_NRCS_SDA(x = locations)
 
   # Example 3: first identify mukey values by geographic location,
   # then query soils from SSURGO by mukey,
   # but still pass locations in case we need to query STATSGO as well
 
   mukeys <- fetch_mukeys_spatially_NRCS_SDA(
-    locations,
+    x = locations,
     db = "SSURGO",
     progress_bar = TRUE
   )
 
   extract_soils_NRCS_SDA(
-    locations = locations,
+    x = locations,
     mukeys = mukeys[["mukeys"]],
     method = "SSURGO_then_STATSGO",
     remove_organic_horizons = "at_surface",

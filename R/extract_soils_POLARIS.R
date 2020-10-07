@@ -200,7 +200,7 @@ check_POLARIS <- function(
 #' Extract soil information from the \var{POLARIS} soil dataset
 #'
 #' @inheritParams check_POLARIS
-#' @inheritParams rSW2st::convert_points
+#' @inheritParams rSW2st::as_points
 #' @param stat A character string. See Chaney et al. 2019
 #' @param buffer_m A numeric value. The radius of a buffer around each point
 #'   from which to extract cell values and across which \code{fun} is applied.
@@ -222,14 +222,14 @@ check_POLARIS <- function(
 #'  \url{https://doi.org/10.1029/2018WR022797}.
 #'
 #' @export
-fetch_soils_from_POLARIS <- function(locations, crs,
+fetch_soils_from_POLARIS <- function(x, crs,
   vars, stat, path, buffer_m = NULL, fun = NULL, na.rm = TRUE, verbose = FALSE
 ) {
 
   depths <- depth_profile_POLARIS()
 
   #--- Make sure inputs are correctly formatted
-  locations <- rSW2st::convert_points(locations, to_class = "sf", crs = crs)
+  locations <- rSW2st::as_points(x, to_class = "sf", crs = crs)
 
 
   #--- Prepare result object
@@ -279,7 +279,7 @@ fetch_soils_from_POLARIS <- function(locations, crs,
 #'
 #' @inheritParams check_POLARIS
 #' @inheritParams fetch_soils_from_POLARIS
-#' @inheritParams rSW2st::convert_points
+#' @inheritParams rSW2st::as_points
 #' @param method A character string. Method that determines extraction approach:
 #'   (i) values are extracted using arguments
 #'       \code{buffer_m}, \code{fun}, and \code{na.rm}
@@ -348,7 +348,7 @@ fetch_soils_from_POLARIS <- function(locations, crs,
 #'   ## Extract median of mean gridcell values across 100-m buffer
 #'   ## around point locations
 #'   res1 <- extract_soils_POLARIS(
-#'     locations = locations,
+#'     x = locations,
 #'     vars = vars,
 #'     stat = stat,
 #'     path = path_polaris,
@@ -360,7 +360,7 @@ fetch_soils_from_POLARIS <- function(locations, crs,
 #'   ## Extract mean gridcell values at point locations and use 70-m buffer at
 #'   ## sites with bad values
 #'   res2 <- extract_soils_POLARIS(
-#'     locations = locations,
+#'     x = locations,
 #'     vars = vars,
 #'     stat = stat,
 #'     path = path_polaris,
@@ -384,7 +384,8 @@ fetch_soils_from_POLARIS <- function(locations, crs,
 #'
 #'
 #' @export
-extract_soils_POLARIS <- function(locations,
+extract_soils_POLARIS <- function(
+  x,
   crs = 4326,
   vars = c("bd", "sand", "clay", "silt"),
   stat = "mean",
@@ -406,12 +407,12 @@ extract_soils_POLARIS <- function(locations,
 
   method <- match.arg(method)
 
-  locations <- rSW2st::convert_points(locations, to_pkg = "sf", crs = crs)
+  locations <- rSW2st::as_points(x, to_pkg = "sf", crs = crs)
 
 
   # Extract values from POLARIS
   res <- fetch_soils_from_POLARIS(
-    locations = locations,
+    x = locations,
     crs = crs,
     vars = vars,
     stat = stat,
@@ -486,7 +487,7 @@ extract_soils_POLARIS <- function(locations,
         if (any(is_bad_texture)) {
           res[is_bad_texture, var_stxt3, ] <- fetch_soils_from_POLARIS(
             path = path,
-            locations = locations[is_bad_texture, ],
+            x = locations[is_bad_texture, ],
             crs = crs,
             vars = var_stxt3,
             stat = stat,
@@ -516,7 +517,7 @@ extract_soils_POLARIS <- function(locations,
       if (any(is_bad)) {
         res[is_bad, check_vars[k], ] <- fetch_soils_from_POLARIS(
           path = path,
-          locations = locations[is_bad, ],
+          x = locations[is_bad, ],
           crs = crs,
           vars = check_vars[k],
           stat = stat,

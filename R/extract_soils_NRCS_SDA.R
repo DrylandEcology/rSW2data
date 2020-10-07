@@ -345,7 +345,7 @@ calculate_NRCS_soil_depth <- function(x, target_cokeys,
 #' Spatially query \var{mukey} values for point locations from \var{NRCS}
 #' web-based \var{SDA} service
 #'
-#' @inheritParams rSW2st::convert_points
+#' @inheritParams rSW2st::as_points
 #' @param db A character string. Query \var{mukey} from the \var{SSURGO} or
 #'   from the \var{STATSGO} soil database.
 #' @param ... Currently ignored.
@@ -374,7 +374,7 @@ calculate_NRCS_soil_depth <- function(x, target_cokeys,
 #'
 #' @export
 fetch_mukeys_spatially_NRCS_SDA <- function(
-  locations,
+  x,
   crs = 4326,
   db = c("SSURGO", "STATSGO"),
   ...,
@@ -392,11 +392,11 @@ fetch_mukeys_spatially_NRCS_SDA <- function(
   db <- match.arg(db)
 
   # We convert to `sp` because of `soilDB::SDA_spatialQuery` (v2.5.7)
-  locations <- rSW2st::convert_points(locations, to_class = "sp", crs = crs)
+  locations <- rSW2st::as_points(x, to_class = "sp", crs = crs)
 
 
   #--- Extract mukeys for each point location
-  x <- list()
+  res <- list()
 
   ids_chunks <- rSW2utils::make_chunks(
     nx = length(locations),
@@ -423,7 +423,6 @@ fetch_mukeys_spatially_NRCS_SDA <- function(
 
   for (k in seq_len(N_chunks)) {
     res_mukeys <- try(
-      # Warnings: "CRS object has comment, which is lost in output"
       soilDB::SDA_spatialQuery(
         geom = locations[ids_chunks[[k]], ],
         db = db,
@@ -434,16 +433,16 @@ fetch_mukeys_spatially_NRCS_SDA <- function(
 
     if (inherits(res_mukeys, "try-error")) {
       warning("Spatial SDA query produced error: chunk = ", k)
-      x[[k]] <- rep(NA, length(ids_chunks[[k]]))
+      res[[k]] <- rep(NA, length(ids_chunks[[k]]))
 
     } else if (!inherits(res_mukeys, "SpatialPolygons")) {
       warning("Spatial SDA query returned non-spatial object: chunk = ", k)
-      x[[k]] <- rep(NA, length(ids_chunks[[k]]))
+      res[[k]] <- rep(NA, length(ids_chunks[[k]]))
 
     } else {
       # Return values of `SDA_spatialQuery` are not ordered by input `geom`,
       # as of soilDB v2.5.7
-      x[[k]] <- sp::over(
+      res[[k]] <- sp::over(
         x = sp::spTransform(
           locations[ids_chunks[[k]], ],
           CRSobj = sp::proj4string(res_mukeys)
@@ -463,7 +462,7 @@ fetch_mukeys_spatially_NRCS_SDA <- function(
 
   list(
     ref = create_reference_for_NRCS_SDA(),
-    mukeys = unlist(x)
+    mukeys = unlist(res)
   )
 }
 
@@ -589,7 +588,7 @@ fetch_soils_from_NRCS_SDA <- function(
 #' Extract soil information from the Soil Data Access \var{SDA} service by
 #' \var{NRCS} for \pkg{SOILWAT2} applications
 #'
-#' @inheritParams rSW2st::convert_points
+#' @inheritParams rSW2st::as_points
 #' @inheritParams fetch_mukeys_spatially_NRCS_SDA
 #' @param mukeys A character or integer vector. List of soil map unit keys
 #'   for which soil information should be extracted. Provide \code{locations}
@@ -689,20 +688,20 @@ fetch_soils_from_NRCS_SDA <- function(
 #'   extract_soils_NRCS_SDA(mukeys = c(471168, 1606800))
 #'
 #'   # Example 2: extract soils by geographic location
-#'   extract_soils_NRCS_SDA(locations = locations)
+#'   extract_soils_NRCS_SDA(x = locations)
 #'
 #'   # Example 3: first identify mukey values by geographic location,
 #'   # then query soils from SSURGO by mukey,
 #'   # but still pass locations in case we need to query STATSGO as well
 #'
 #'   mukeys <- fetch_mukeys_spatially_NRCS_SDA(
-#'     locations,
+#'     x = locations,
 #'     db = "SSURGO",
 #'     progress_bar = TRUE
 #'   )
 #'
 #'   extract_soils_NRCS_SDA(
-#'     locations = locations,
+#'     x = locations,
 #'     mukeys = mukeys[["mukeys"]],
 #'     method = "SSURGO_then_STATSGO",
 #'     remove_organic_horizons = "at_surface",
@@ -718,7 +717,8 @@ fetch_soils_from_NRCS_SDA <- function(
 #'
 #' @export
 extract_soils_NRCS_SDA <- function(
-  locations,
+  x,
+  crs = 4326,
   mukeys,
   method = c("SSURGO", "STATSGO", "SSURGO_then_STATSGO"),
   remove_organic_horizons = c("none", "all", "at_surface"),
@@ -733,13 +733,13 @@ extract_soils_NRCS_SDA <- function(
 ) {
 
   stopifnot(
-    !(missing(locations) && missing(mukeys)),
+    !(missing(x) && missing(mukeys)),
     curl::has_internet()
   )
 
   method <- match.arg(method)
 
-  if (missing(locations) && method == "SSURGO_then_STATSGO") {
+  if (missing(x) && method == "SSURGO_then_STATSGO") {
     warning(
       "'method' == \"SSURGO_then_STATSGO\" has no effect ",
       "if locations are missing"
@@ -752,7 +752,8 @@ extract_soils_NRCS_SDA <- function(
     source = db,
     mukey = if (missing(mukeys)) {
       fetch_mukeys_spatially_NRCS_SDA(
-        locations = locations,
+        x = x,
+        crs = crs,
         db = db,
         progress_bar = progress_bar
       )[["mukeys"]]
@@ -1120,13 +1121,13 @@ extract_soils_NRCS_SDA <- function(
   ids_h0 <- which(locs_table_depths[, "N_horizons"] == 0)
   if (
     length(ids_h0) > 0 &&
-    !missing(locations) &&
+    !missing(x) &&
     method == "SSURGO_then_STATSGO"
   ) {
 
     # Call again for nosoil rows and extract from STATSGO instead of SSURGO
     res0 <- Recall(
-      locations = locations[ids_h0, ],
+      x = x[ids_h0, ],
       method = "STATSGO",
       remove_organic_horizons = remove_organic_horizons,
       replace_missing_fragvol_with_zero = replace_missing_fragvol_with_zero,

@@ -14,8 +14,9 @@ bound that should be adjusted.}
 
 \item{sdepths}{A numeric vector. The lower depths of soil layers,
 sorted by increasing depth in a consistent unit.}
-
-\item{The}{adjusted values of \code{depths}.}
+}
+\value{
+The adjusted values of \code{depths}.
 }
 \description{
 Adjust a depth interval by the depth of a possible restriction

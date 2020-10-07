@@ -15,8 +15,11 @@
 #------ Jargon
 additively
 et
+des
 gridcell
 hydrologic
+Hydrological
+Hydrologiques
 MERCHANTABILITY
 radians
 unmapped
@@ -24,13 +27,16 @@ unmapped
 #------------------------------------
 #------ Abbreviations
 al
+FAO
 ORCID
+th
 USGS
 
 #------------------------------------
 #------ Names
 appveyor
 Brungard
+Calera
 codecov
 github
 Lauenroth
@@ -38,6 +44,7 @@ McBratney
 Minasny
 Nauman
 Palmquist
+Paruelo
 Rawls
 roxygen
 rSFSTEP
@@ -51,4 +58,5 @@ STEPWAT
 testthat
 travis
 Wickham
+Wythers
 Yimam

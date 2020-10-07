@@ -2,7 +2,7 @@
 #' Extract elevation, slope, and aspect from National Elevation Dataset
 #' \var{NED} for \pkg{SOILWAT2} applications
 #'
-#' @inheritParams rSW2st::convert_points
+#' @inheritParams rSW2st::as_points
 #' @param path A character string. The path to the folder containing
 #'   \var{NED-1arcsec} files, see \code{file_datasets}.
 #' @param file_datasets A named list. The paths/\var{filenames} of
@@ -54,7 +54,7 @@
 #'     aspect = paste0("aspect_", label_ned, "_NED_1.tif")
 #'   )
 #'
-#'   locations <- rSW2st::convert_points(
+#'   locations <- rSW2st::as_points(
 #'     matrix(data = c(-120.325, -120.328, 43.328, 43.242), nrow = 2),
 #'     to_class = "sp",
 #'     crs = 4326
@@ -105,7 +105,7 @@
 #'
 #' @export
 extract_topography_NEDUSA <- function(
-  locations,
+  x,
   crs = 4326,
   path,
   file_datasets = list(
@@ -144,7 +144,7 @@ extract_topography_NEDUSA <- function(
 
 
   #--- Extract values
-  locations <- rSW2st::convert_points(locations, to_class = "sf", crs = crs)
+  locations <- rSW2st::as_points(x, to_class = "sf", crs = crs)
   locs_tmp <- sf::st_transform(locations, crs = sf::st_crs(rtopo))
 
   vals_topo <- raster::extract(

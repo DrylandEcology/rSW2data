@@ -195,5 +195,3 @@ test_that("Bare-soil evaporation coefficients", {
   }
 
 })
-
-

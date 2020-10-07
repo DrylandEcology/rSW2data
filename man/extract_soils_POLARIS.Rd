@@ -6,7 +6,7 @@
 for \pkg{SOILWAT2} applications}
 \usage{
 extract_soils_POLARIS(
-  locations,
+  x,
   crs = 4326,
   vars = c("bd", "sand", "clay", "silt"),
   stat = "mean",
@@ -22,7 +22,7 @@ extract_soils_POLARIS(
 )
 }
 \arguments{
-\item{locations}{A numerical two-dimensional object
+\item{x}{A numerical two-dimensional object
 (a \code{matrix}, \code{array}, or \code{data.frame})
 with longitude/X, latitude/Y as columns;
 a \code{\link[sp:SpatialPoints-class]{sp::SpatialPoints}} object; or
@@ -32,7 +32,8 @@ i.e., an object with a class \var{sf} or \var{sfc}.}
 \item{crs}{An object which is a \var{crs} or from which one can be derived.
 \code{x} can
 be numeric as a \var{EPSG} number;
-a character string as a \var{wkt} or \var{proj4};
+a character string as a \var{wkt};
+a character string as a \var{proj4} (not recommended because outdated);
 or of a class including
   \code{\link[raster:Raster-classes]{raster::Raster}},
   \code{\link[sp:Spatial-class]{sp::Spatial}},
@@ -124,7 +125,7 @@ if (has_POLARIS) {
   ## Extract median of mean gridcell values across 100-m buffer
   ## around point locations
   res1 <- extract_soils_POLARIS(
-    locations = locations,
+    x = locations,
     vars = vars,
     stat = stat,
     path = path_polaris,
@@ -136,7 +137,7 @@ if (has_POLARIS) {
   ## Extract mean gridcell values at point locations and use 70-m buffer at
   ## sites with bad values
   res2 <- extract_soils_POLARIS(
-    locations = locations,
+    x = locations,
     vars = vars,
     stat = stat,
     path = path_polaris,

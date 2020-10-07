@@ -27,7 +27,7 @@ getLayersWidth <- function(layers_depth) {
 #' @param sdepths A numeric vector. The lower depths of soil layers,
 #'   sorted by increasing depth in a consistent unit.
 #'
-#' @param The adjusted values of \code{depths}.
+#' @return The adjusted values of \code{depths}.
 #'
 #' @examples
 #' depths_bottom <- c(10, 30, 50, 100)

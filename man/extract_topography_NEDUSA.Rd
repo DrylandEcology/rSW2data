@@ -6,7 +6,7 @@
 \var{NED} for \pkg{SOILWAT2} applications}
 \usage{
 extract_topography_NEDUSA(
-  locations,
+  x,
   crs = 4326,
   path,
   file_datasets = list(elev = "ned_1s.tif", slope = file.path("terrain",
@@ -19,7 +19,7 @@ extract_topography_NEDUSA(
 )
 }
 \arguments{
-\item{locations}{A numerical two-dimensional object
+\item{x}{A numerical two-dimensional object
 (a \code{matrix}, \code{array}, or \code{data.frame})
 with longitude/X, latitude/Y as columns;
 a \code{\link[sp:SpatialPoints-class]{sp::SpatialPoints}} object; or
@@ -29,7 +29,8 @@ i.e., an object with a class \var{sf} or \var{sfc}.}
 \item{crs}{An object which is a \var{crs} or from which one can be derived.
 \code{x} can
 be numeric as a \var{EPSG} number;
-a character string as a \var{wkt} or \var{proj4};
+a character string as a \var{wkt};
+a character string as a \var{proj4} (not recommended because outdated);
 or of a class including
   \code{\link[raster:Raster-classes]{raster::Raster}},
   \code{\link[sp:Spatial-class]{sp::Spatial}},
@@ -102,10 +103,10 @@ if (requireNamespace("FedData") && curl::has_internet()) {
     aspect = paste0("aspect_", label_ned, "_NED_1.tif")
   )
 
-  locations <- rSW2st::convert_points(
+  locations <- rSW2st::as_points(
     matrix(data = c(-120.325, -120.328, 43.328, 43.242), nrow = 2),
     to_class = "sp",
-    crs = "+init=epsg:4326"
+    crs = 4326
   )
   extent_polygon <- FedData::polygon_from_extent(
     x = 1.1 * raster::extent(locations),
