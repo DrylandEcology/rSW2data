@@ -57,7 +57,7 @@
 #'   locations <- rSW2st::convert_points(
 #'     matrix(data = c(-120.325, -120.328, 43.328, 43.242), nrow = 2),
 #'     to_class = "sp",
-#'     crs = "+init=epsg:4326"
+#'     crs = 4326
 #'   )
 #'   extent_polygon <- FedData::polygon_from_extent(
 #'     x = 1.1 * raster::extent(locations),
@@ -145,7 +145,7 @@ extract_topography_NEDUSA <- function(
 
   #--- Extract values
   locations <- rSW2st::convert_points(locations, to_class = "sf", crs = crs)
-  locs_tmp <- sf::st_transform(locations, crs = raster::crs(rtopo))
+  locs_tmp <- sf::st_transform(locations, crs = sf::st_crs(rtopo))
 
   vals_topo <- raster::extract(
     rtopo,
