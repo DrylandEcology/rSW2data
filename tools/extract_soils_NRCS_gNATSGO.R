@@ -504,11 +504,7 @@ query_mukeys_spatially_NRCS_gNATSGO <- function(locations,
 
     locations <- sp::SpatialPoints(
       coords = locations,
-      proj4string = if (rgdal::new_proj_and_gdal()) {
-        sp::CRS(SRS_string = "EPSG:4326")
-      } else {
-        sp::CRS("+init=epsg:4326")
-      }
+      proj4string = as(sf::st_crs(4326), "CRS")
     )
 
     is_sp <- TRUE
