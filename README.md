@@ -36,8 +36,8 @@
 
 # rSW2data
 
-Collection of functions to access external data sources and to
-provide input data for [rSOILWAT2][], [rSFSW2][], and [rSFSTEP2][]
+Collection of functions to prepare and calculate
+input data for [rSOILWAT2][], [rSFSW2][], and [rSFSTEP2][]
 simulation experiments.
 
 
