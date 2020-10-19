@@ -12,7 +12,8 @@ deduce_complete_soil_texture(
 )
 }
 \arguments{
-\item{x}{A \code{data.frame}. Soil horizons/layers are organized in rows
+\item{x}{A \code{data.frame} or \code{matrix}.
+Soil horizons/layers are organized in rows
 and soil texture variables in columns.}
 
 \item{var_stxt}{A vector of character strings. The names of the

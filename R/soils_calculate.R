@@ -1,7 +1,8 @@
 
 #' Deduce soil texture \var{iff} one of sand, clay, silt is missing
 #'
-#' @param x A \code{data.frame}. Soil horizons/layers are organized in rows
+#' @param x A \code{data.frame} or \code{matrix}.
+#'   Soil horizons/layers are organized in rows
 #'   and soil texture variables in columns.
 #' @param var_stxt A vector of character strings. The names of the
 #'   three columns representing sand, clay, and silt.
@@ -75,6 +76,124 @@ deduce_complete_soil_texture <- function(
 }
 
 
+
+#' Replace missing values of a soil variables with a new value
+#'
+#'
+#' @param x A \code{data.frame} or \code{matrix}.
+#'   Soil horizons/layers are organized in rows and variables in columns.
+#' @param variable A character string. The variable name, i.e.,
+#'   one of the column names of \code{x}.
+#' @param value The replacement value for missing values in
+#'   \code{x[, variable]}.
+#' @param where A character string. Method to specify how and where in the
+#'   soil profile missing values of a variable should be replaced.
+#'   Possible options are:
+#'   \describe{
+#'     \item{\var{"all"}}{
+#'       Missing values are replaced by \code{value}.
+#'     }
+#'     \item{\var{"at_surface"}}{
+#'       Missing values in the shallowest soil horizon
+#'       are replaced by \code{value}.
+#'       Note, remaining missing values in deeper horizons
+#'       can subsequently be imputed, e.g.,
+#'       \code{\link{impute_soils}}.
+#'     }
+#'     \item{\var{"none"}}{
+#'        Missing values are set to \code{NA}.
+#'     }
+#'   }
+#' @param horizon A character string or integer vector. Either a column name
+#'   of \code{x} or a vector itself containing soil horizon/layer numbers that
+#'   start at 1 in the most shallow/surface horizon/layer.
+#' @param verbose A logical value.
+#'
+#' @return An updated copy of \code{x}.
+#'
+#' @section Details: Missing values are those that are not finite, i.e.,
+#'   not one of \code{NA}, \code{NaN}, or \code{Inf}.
+#'
+#' @examples
+#' x <- data.frame(
+#'   coarse = c(NaN, 10, 50, Inf, 0, 15, NA),
+#'   sand_pct = c(45.7, NA, 68.5, NA, 0, 2, NA),
+#'   clay_pct = c(12.5, NA, NA, NA, 0, NA, 10),
+#'   silt_pct = c(41.8, NA, 21.5, 15, NA, 1, 15)
+#' )
+#'
+#' set_missing_soils_to_value(x, "coarse", where = "none")
+#' set_missing_soils_to_value(x, "coarse", where = "all")
+#' set_missing_soils_to_value(
+#'   x = cbind(Layer_ID = seq_len(nrow(x)), x),
+#'   variable = "coarse",
+#'   where = "at_surface",
+#'   horizon = "Layer_ID"
+#' )
+#' set_missing_soils_to_value(
+#'   x,
+#'   variable = "coarse",
+#'   where = "at_surface",
+#'   horizon = seq_len(nrow(x))
+#' )
+#'
+#' @export
+set_missing_soils_to_value <- function(
+  x,
+  variable,
+  value = 0,
+  where = c("none", "all", "at_surface"),
+  horizon = colnames(x)[1],
+  verbose = FALSE
+) {
+
+  where <- match.arg(where)
+  stopifnot(variable %in% colnames(x))
+
+  is_missing <- !is.finite(x[, variable])
+
+  if (any(is_missing)) {
+    if (where == "all") {
+      x[is_missing, variable] <- value
+
+    } else if (where == "at_surface") {
+
+      k_horizon <- if (is.character(horizon)) {
+        stopifnot(horizon %in% colnames(x))
+        x[, horizon]
+
+      } else if (is.numeric(horizon)) {
+        stopifnot(length(horizon) == nrow(x))
+        horizon
+
+      } else {
+        stop(
+          "Argument `horizon` must be either a column name of `x` or ",
+          "a numeric vector indicating soil horizon/layer numbers."
+        )
+      }
+
+      x[is_missing & k_horizon == 1, variable] <- value
+
+    } else {
+      x[is_missing, variable] <- NA
+    }
+  }
+
+  if (
+    verbose &&
+    where %in% c("all", "at_surface") &&
+    (n_missing <- sum(is_missing)) > 0
+  ) {
+    message(
+      "Missing values of variable ", shQuote(variable),
+      " set to a value of ", value,
+      " : n = ", n_missing
+    )
+  }
+
+  x
+}
 
 #' Estimate soil bulk density
 #'

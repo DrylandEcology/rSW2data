@@ -36,6 +36,66 @@ test_that("deduce_complete_soil_texture", {
 })
 
 
+test_that("set_missing_soils_to_value", {
+  x <- data.frame(
+    coarse = c(NaN, 10, 50, Inf, NA, 15, NA, 20),
+    sand_pct = c(45.7, NA, 68.5, NA, 0, 2, NA, NA)
+  )
+
+  cns <- colnames(x)
+  var <- "coarse"
+  cns_wo_var <- !grepl(var, cns)
+
+  is_missing <- !is.finite(x[, var])
+
+  res <- set_missing_soils_to_value(x, var, where = "none")
+  expect_equal(is.na(res[, var]), is_missing)
+  expect_equal(res[, !grepl(var, colnames(res))], x[, cns_wo_var])
+
+  res <- set_missing_soils_to_value(x, var, where = "all")
+  expect_true(all(is.finite(res[, var])))
+  expect_equal(res[, !grepl(var, colnames(res))], x[, cns_wo_var])
+
+
+
+  for (k in 1:2) {
+    horizons <- if (k == 1) seq_len(nrow(x)) else rep(seq_len(nrow(x) / 2), 2)
+    is_shallowest <- horizons == 1
+    is_missing_but_shallow <- is_missing
+    is_missing_but_shallow[is_shallowest] <- FALSE
+
+    res <- set_missing_soils_to_value(
+      x = cbind(Layer_ID = horizons, x),
+      variable = var,
+      where = "at_surface",
+      horizon = "Layer_ID"
+    )
+    expect_true(all(is.finite(res[is_shallowest, var])))
+    expect_equal(!is.finite(res[, var]), is_missing_but_shallow)
+    expect_equal(res[, !grepl(var, colnames(res))][, -1], x[, cns_wo_var])
+
+
+    res <- set_missing_soils_to_value(
+      x,
+      variable = var,
+      where = "at_surface",
+      horizon = horizons
+    )
+    expect_true(all(is.finite(res[is_shallowest, var])))
+    expect_equal(!is.finite(res[, var]), is_missing_but_shallow)
+    expect_equal(res[, !grepl(var, colnames(res))], x[, cns_wo_var])
+
+    expect_message(set_missing_soils_to_value(
+      x,
+      variable = var,
+      where = "at_surface",
+      horizon = horizons,
+      verbose = TRUE
+    ))
+  }
+})
+
+
 test_that("estimate_bulkdensity", {
   tol <- sqrt(.Machine$double.eps)
 
