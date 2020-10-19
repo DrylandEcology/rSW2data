@@ -96,6 +96,37 @@ test_that("set_missing_soils_to_value", {
 })
 
 
+test_that("impute_soils", {
+  x <- data.frame(
+    id = rep(1, 7),
+    layer_no = 1:7,
+    coarse = c(NA, 10, 50, NA, 0, 15, NA),
+    sand_pct = c(45.7, NA, 68.5, NA, 0, 2, NA),
+    clay_pct = c(12.5, NA, NA, NA, 0, NA, 10),
+    silt_pct = c(41.8, NA, 21.5, 15, NA, 1, 15)
+  )
+
+  res <- suppressWarnings(impute_soils(
+    x,
+    var_values = c("coarse", "sand_pct"),
+    var_site_id = "id",
+    var_horizon = "layer_no"
+  ))
+
+  expect_equal(which(is.na(res[, "coarse"])), 1)
+  expect_true(!all(is.na(res[, "sand_pct"])))
+  expect_equal(x[, c("clay_pct", "silt_pct")], res[, c("clay_pct", "silt_pct")])
+
+  expect_message(suppressWarnings(impute_soils(
+    x,
+    var_values = c("coarse", "sand_pct"),
+    var_site_id = "id",
+    var_horizon = "layer_no",
+    verbose = TRUE
+  )))
+})
+
+
 test_that("estimate_bulkdensity", {
   tol <- sqrt(.Machine$double.eps)
 

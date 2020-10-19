@@ -195,6 +195,117 @@ set_missing_soils_to_value <- function(
   x
 }
 
+
+#' Impute missing soil values per location
+#'
+#' Impute missing soil values per location by shallow-depth value carried
+#' deeper (in analogy to \var{LOCF}), but do not impute missing values
+#' in the shallowest horizon/layer.
+#'
+#' @param x A \code{data.frame} or \code{matrix}.
+#'   Soil horizons/layers are organized in rows
+#'   and soil texture variables in columns.
+#' @param var_values A vector of character strings. The column names of \code{x}
+#'   which contain the soil variables to be imputed.
+#' @param var_site_id A character string. The column name of \code{x} which
+#'   contains the unique location identifiers.
+#' @param var_horizon A character string. The column name of \code{x} which
+#'   contains the horizon/layer numbers where the shallowest horizon/layer
+#'   is number one.
+#' @param verbose A logical value.
+#'
+#' @return An updated version of \code{x}.
+#'
+#' @seealso \code{\link[rSW2utils]{impute_df}}
+#'
+#' @examples
+#' x <- data.frame(
+#'   id = rep(1, 7),
+#'   layer_no = 1:7,
+#'   coarse = c(NA, 10, 50, NA, 0, 15, NA),
+#'   sand_pct = c(45.7, NA, 68.5, NA, 0, 2, NA),
+#'   clay_pct = c(12.5, NA, NA, NA, 0, NA, 10),
+#'   silt_pct = c(41.8, NA, 21.5, 15, NA, 1, 15)
+#' )
+#'
+#' # Missing values in the shallowest layer are not imputed
+#' impute_soils(
+#'   x,
+#'   var_values = c("coarse", "sand_pct"),
+#'   var_site_id = "id",
+#'   var_horizon = "layer_no"
+#' )
+#'
+#' @export
+impute_soils <- function(
+  x,
+  var_values,
+  var_site_id = "COKEY",
+  var_horizon = "Horizon_No",
+  verbose = FALSE
+) {
+
+  cns <- colnames(x)
+  for (var in c(var_values, var_site_id, var_horizon)) {
+    if (!(var %in% cns)) {
+      stop(
+        shQuote(var),
+        " is a required/requested column name, but cannot be found."
+      )
+    }
+  }
+
+
+  if (verbose) {
+    is_shallowest <- x[, var_horizon] == 1
+    n_imped_vals <- sum(is.na(x[!is_shallowest, var_values]))
+    is_imped_hzs <- apply(x[!is_shallowest, var_values], 1, anyNA)
+    n_imped_hzs <- sum(is_imped_hzs)
+    n_imped_cokeys <- length(
+      unique(x[!is_shallowest, var_site_id][is_imped_hzs])
+    )
+  }
+
+  tmp <- by(
+    data = x[, var_values, drop = FALSE],
+    INDICES = x[, var_site_id],
+    FUN = function(x) {
+      if (nrow(x) > 1) {
+        x_shallowest <- x[1, ] # don't impute first/shallowest horizon
+
+        x <- suppressMessages(
+          rSW2utils::impute_df(x, imputation_type = "locf")
+        )
+
+        x[1, ] <- x_shallowest
+      }
+
+      x
+    },
+    simplify = FALSE
+  )
+
+  ids <- match(unique(x[, var_site_id]), names(tmp))
+  x[, var_values] <- do.call(rbind, tmp[ids])
+
+  if (verbose) {
+    n_missing <- sum(is.na(x[, var_values]))
+
+    message(
+      "Imputed values for n = ", n_imped_cokeys, " locations ",
+      "in n = ", n_imped_hzs, " soil horizons/layers ",
+      "for n = ", n_imped_vals, " values",
+      if (n_missing > 0) {
+        paste0("; remaining missing values n = ", n_missing)
+      } else "."
+    )
+  }
+
+  x
+}
+
+
+
 #' Estimate soil bulk density
 #'
 #' @param theta_saturated A numeric vector. Saturated volumetric water
