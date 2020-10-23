@@ -364,6 +364,40 @@ estimate_bulkdensity <- function(theta_saturated, gravel_volume) {
 #' @return A numeric matrix with potential bare-soil evaporation coefficients
 #'   where rows correspond to sites and columns to soil layers.
 #'
+#' @examples
+#' sw_soils1 <- data.frame(
+#'   depth_cm = c(5, 10, 20, 30, 40, 60, 80, 100),
+#'   sand_frac = c(0.51, 0.44, 0.35, 0.32, 0.31, 0.32, 0.57, 0.57),
+#'   clay_frac = c(0.15, 0.26, 0.41, 0.45, 0.47, 0.47, 0.28, 0.28)
+#' )
+#'
+#' calc_BareSoilEvapCoefs(
+#'   layers_depth = sw_soils1[, "depth_cm"],
+#'   sand = sw_soils1[, "sand_frac"],
+#'   clay = sw_soils1[, "clay_frac"]
+#' )
+#'
+#' sw_soils2 <- list(
+#'   depth_cm = t(data.frame(
+#'     site1 = c(5, 10, 20),
+#'     site2 = c(5, 10, 15)
+#'   )),
+#'   sand = t(data.frame(
+#'     site1 = c(0.50, 0.40, 0.30),
+#'     site2 = c(0.25, 0.30, 0.35)
+#'   )),
+#'   clay = t(data.frame(
+#'     site1 = c(0.20, 0.20, 0.25),
+#'     site2 = c(0.15, 0.25, 0.25)
+#'   ))
+#' )
+#'
+#' calc_BareSoilEvapCoefs(
+#'   layers_depth = sw_soils2[["depth_cm"]],
+#'   sand = sw_soils2[["sand"]],
+#'   clay = sw_soils2[["clay"]],
+#' )
+#'
 #' @export
 calc_BareSoilEvapCoefs <- function(layers_depth, sand, clay,
   depth_max_bs_evap_cm = 15
