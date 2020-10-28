@@ -178,6 +178,245 @@ add_layer_to_soil <- function(x, il, w, method = c("interpolate", "exhaust")) {
 }
 
 
+
+#' Add/remove soil layers to soil data
+#'
+#' @param soil_layers A two-dimensional numeric matrix or \code{data.frame}.
+#'   Rows represents sites; columns represent soil layers/horizons;
+#'   and values are depths of the lower limits of soil layers/horizons in
+#'   centimeters.
+#' @param requested_soil_layers A numeric vector. The soil depths that should
+#'   be added if not already present.
+#' @param soil_data A two-dimensional numeric matrix or \code{data.frame}.
+#'   Rows represents sites and columns represent
+#'   variables x soil layers/horizons combinations.
+#'   Column names are formatted as \var{var_Lx} where \var{x} represents
+#'   an increasing soil layer/horizon number.
+#' @param variables A vector of character strings. The patterns identifying
+#'   all variables that are to be updated.
+#' @param vars_exhaust A vector of character strings. The patterns
+#'   identifying variables whose values are "exhausted" when a soil layer is
+#'   split into two layers. See \code{\link{add_layer_to_soil}} for details.
+#' @param keep_prev_soildepth A logical value.
+#' @param keep_prev_soillayers A logical value.
+#' @param verbose A logical value.
+#'
+#' @return A named list with elements: \describe{
+#'   \item{updated}{
+#'     A logical value indicating whether any layers/horizons
+#'     have been added or removed.
+#'   }
+#'   \item{soil_layers}{An updated copy of \code{soil_layers}.}
+#'   \item{soil_data}{An updated copy of \code{soil_data}.}
+#' }
+#'
+#' @examples
+#' soil_layers <- t(data.frame(
+#'   site1 = c(20, 81, NA, NA, NA, NA),
+#'   site2 = c(8, 20, 150, NA, NA, NA)
+#' ))
+#'
+#' N <- ncol(soil_layers)
+#' colnames(soil_layers) <- paste0("depth_L", seq_len(N))
+#'
+#' soil_data <- cbind(
+#'   sand = t(data.frame(
+#'     site1 = c(0.5, 0.55, NA, NA, NA, NA),
+#'     site2 = c(0.3, 0.35, 0.4, NA, NA, NA)
+#'   )),
+#'   TranspCoeff = t(data.frame(
+#'     site1 = c(0.9, 0.1, NA, NA, NA, NA),
+#'     site2 = c(0.7, 0.1, 0.2, NA, NA, NA)
+#'   ))
+#' )
+#' colnames(soil_data) <- paste0(
+#'   rep(c("sand", "TranspCoeff"), each = N),
+#'   "_L",
+#'   seq_len(N)
+#' )
+#'
+#' new_soils <- update_soil_profile(
+#'   soil_layers = soil_layers,
+#'   requested_soil_layers = c(5, 10, 20, 100, 200),
+#'   soil_data = soil_data
+#' )
+#'
+#' @export
+update_soil_profile <- function(
+  soil_layers,
+  requested_soil_layers,
+  soil_data,
+  variables = NULL,
+  vars_exhaust = c("EvapCoeff", "TranspCoeff", "Imperm"),
+  keep_prev_soildepth = TRUE,
+  keep_prev_soillayers = TRUE,
+  verbose = FALSE
+) {
+  #--- Check inputs
+  # Available soil layers: rows = sites, columns = layer depths
+  soil_layers <- round(data.matrix(soil_layers))
+
+  # Requested soil layers
+  requested_soil_layers <- as.integer(round(requested_soil_layers))
+  stopifnot(requested_soil_layers > 0, diff(requested_soil_layers) > 0)
+
+  # Available soil data: rows = sites, columns = variables
+  soil_data <- data.matrix(soil_data)
+  cns_data <- colnames(soil_data)
+
+  # Variables for which to update soil profile
+  if (length(variables) == 0) {
+    # Assumption: colnames of `soil_data` are formatted as `var_Lx`
+    variables <- unique(sapply(
+      X = strsplit(cns_data, split = "_", fixed = TRUE),
+      FUN = function(x) paste0(x[-length(x)], collapse = "_")
+    ))
+
+  } else {
+    stopifnot(sapply(variables, function(x) any(grepl(x, cns_data))))
+  }
+
+  # Determine how to add different soil variables
+  # - variables whose values will be exhausted (all others are interpolated)
+  tmp <- sapply(vars_exhaust, function(x) any(grepl(x, cns_data)))
+  vars_exhaust <- vars_exhaust[tmp]
+
+
+  # Prepare output container
+  has_updates <- FALSE
+  new_soil_data <- soil_data
+  new_soil_layers <- soil_layers
+
+
+  #--- Identify layers and groups of sites with the same profile (soil layers)
+  ids_layers <- seq_len(dim(soil_layers)[2])
+  avail_sl_ids <- apply(soil_layers, 1, paste0, collapse = "x")
+  layer_sets <- unique(avail_sl_ids)
+
+  if (length(layer_sets) > 0) {
+
+    soil_data_by_var <- lapply(
+      X = variables,
+      FUN = function(x) {
+        soil_data[, grep(x, cns_data)[ids_layers], drop = FALSE]
+      }
+    )
+
+    new_soil_data_by_var <- NULL
+
+    #--- Loop through sites with same layer profile and make adjustements
+    for (k1 in seq_along(layer_sets)) {
+      if (verbose) {
+        print(paste(
+          "Processing", k1, "out of", length(layer_sets), "soil layer sets."
+        ))
+      }
+
+      il_set <- avail_sl_ids == layer_sets[k1]
+      if (sum(il_set, na.rm = TRUE) == 0) next
+
+
+      # --- Add requested soil layers
+      # Identify which requested layers need to be added
+      ldset_prev <- stats::na.exclude(soil_layers[which(il_set)[1], ])
+      ldset <- ldset_prev
+      req_sd_toadd <- setdiff(requested_soil_layers, ldset)
+
+      if (isTRUE(keep_prev_soildepth)) {
+        req_sd_toadd <- req_sd_toadd[req_sd_toadd < max(ldset)]
+      }
+
+      if (length(req_sd_toadd) == 0) next
+
+      # Add identified layers
+      new_soil_data_by_var <- lapply(
+        soil_data_by_var,
+        function(x) x[il_set, , drop = FALSE]
+      )
+
+      for (lnew in req_sd_toadd) {
+        ilnew <- findInterval(lnew, ldset)
+        il_weight <- rSW2data::calc_weights_from_depths(ilnew, lnew, ldset)
+
+        for (k2 in seq_along(variables)) {
+          new_soil_data_by_var[[k2]] <- rSW2data::add_layer_to_soil(
+            new_soil_data_by_var[[k2]],
+            il = ilnew,
+            w = il_weight,
+            method = if (variables[k2] %in% vars_exhaust) {
+              "exhaust"
+            } else {
+              "interpolate"
+            }
+          )
+        }
+
+        ldset <- sort(c(ldset, lnew))
+      }
+
+
+      #--- Remove soil layers that are no longer requested
+      if (isFALSE(keep_prev_soillayers)) {
+        # Identify which layers to delete
+        tmp_req <- if (isTRUE(keep_prev_soildepth)) {
+          c(
+            requested_soil_layers[requested_soil_layers < max(ldset_prev)],
+            ldset_prev[length(ldset_prev)]
+          )
+
+        } else {
+          requested_soil_layers
+        }
+
+        req_sd_todel <- setdiff(ldset, tmp_req)
+
+        if (length(req_sd_todel) > 0) {
+          # Delete layers
+          stop("Removing soil layers is not yet implemented.")
+        }
+      }
+
+
+      #--- Update soil data
+      lyrs <- seq_along(ldset)
+
+      for (k2 in seq_along(variables)) {
+        tmp <- grep(variables[k2], cns_data)
+
+        if (length(tmp) < length(ldset)) {
+          stop(
+            "`sw_input_soils` has columns for ", length(tmp), " soil layers, ",
+            "but ", length(ldset), " are requested."
+          )
+        }
+
+        icol <- tmp[lyrs]
+
+        new_soil_data[il_set, icol] <- round(
+          new_soil_data_by_var[[k2]][, lyrs],
+          if (variables[k2] %in% vars_exhaust) 4L else 2L
+        )
+      }
+
+      # Update soil layer depths
+      new_soil_layers[il_set, lyrs] <-
+        matrix(ldset, nrow = sum(il_set), ncol = length(ldset), byrow = TRUE)
+
+      has_updates <- TRUE
+    }
+
+  }
+
+
+  list(
+    updated = has_updates,
+    soil_data = new_soil_data,
+    soil_layers = new_soil_layers
+  )
+}
+
+
+
 #' Find the soil layer numbers in a soil layer profile that are affected by
 #' a soil depth or a soil band.
 #'

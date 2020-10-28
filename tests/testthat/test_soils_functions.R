@@ -87,3 +87,55 @@ test_that("add_layer_to_soil", {
     w = c(0.5, 0.5), method = "interpolate"))
 
 })
+
+
+
+test_that("update_soil_profile", {
+  new_slyrs <- c(5, 10, 20, 100, 200)
+
+  soil_layers <- t(data.frame(
+    site1 = c(20, 81, NA, NA, NA, NA),
+    site2 = c(8, 20, 150, NA, NA, NA)
+  ))
+
+  N_sites <- nrow(soil_layers)
+  N_layers <- ncol(soil_layers)
+  colnames(soil_layers) <- paste0("depth_L", seq_len(N_layers))
+
+  soil_data <- cbind(
+    sand = t(data.frame(
+      site1 = c(0.5, 0.55, NA, NA, NA, NA),
+      site2 = c(0.3, NA, 0.4, NA, NA, NA)
+    )),
+    TranspCoeff = t(data.frame(
+      site1 = c(0.9, 0.1, NA, NA, NA, NA),
+      site2 = c(0.7, 0.1, 0.2, NA, NA, NA)
+    ))
+  )
+  colnames(soil_data) <- paste0(
+    rep(c("sand", "TranspCoeff"), each = N_layers),
+    "_L",
+    seq_len(N_layers)
+  )
+
+  new_soils <- update_soil_profile(
+    soil_layers = soil_layers,
+    requested_soil_layers = new_slyrs,
+    soil_data = soil_data
+  )
+
+  expect_true(new_soils[["updated"]])
+
+  for (k in seq_len(N_sites)) {
+    expected_soillayers <- sort(unique(c(
+      soil_layers[k, ],
+      new_slyrs[new_slyrs < max(soil_layers[k, ], na.rm = TRUE)]
+    )))
+
+    expect_equivalent(
+      na.exclude(new_soils[["soil_layers"]][k, ]),
+      expected_soillayers
+    )
+  }
+
+})
