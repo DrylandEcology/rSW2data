@@ -1,101 +1,214 @@
 context("Manipulate soil layers")
 
-#---INPUTS
-if (FALSE) {
-  set.seed(1234L)
-}
-
-nrows <- 10L
-test_space <- 1000L
-
-make_test_x <- function(ncol, nrow = nrows, space = test_space) {
-  as.data.frame(matrix(sample(space, nrow * ncol), nrow = nrow, ncol = ncol,
-      dimnames = list(NULL, paste0("L", seq_len(ncol)))))
-}
-
-test_data <- list(
-  make_test_x(1),
-  make_test_x(2),
-  make_test_x(3),
-  make_test_x(4),
-  make_test_x(10)
-)
-
-test_weights <- list(c(NA, 1), c(0, 1), c(0.5, 0.5), c(1, 0), c(1, NA),
-  c(NA, NA))
-
 
 #---TESTS
-test_that("add_layer_to_soil", {
+test_that("add_soil_layer", {
+  soil_layers <- c(8, 20, 150)
+  N <- length(soil_layers)
 
-  #--- Loop through test data set, layers, weight options, and methods
-  for (k in seq_along(test_data))
-    for (il in c(0, seq_len(ncol(test_data[[k]]))))
-      for (iw in seq_along(test_weights))
-        for (im in c("interpolate", "exhaust")) {
-          loop_info <- paste("test", k, "/ layer", il, "/ w", iw,
-            "/ method", im)
+  xsand <- t(data.frame(
+    site1 = c(0.5, 0.55, NA),
+    site2 = c(0.3, 0.35, 0.4)
+  ))
 
-          res <- add_layer_to_soil(x = test_data[[k]], il = il,
-            w = test_weights[[iw]], method = im)
+  xtrco <- t(data.frame(
+    site1 = c(0.9, 0.1, NA),
+    site2 = c(0.7, 0.1, 0.2)
+  ))
 
-          # Test dimensions
-          expect_equal(ncol(res), ncol(test_data[[k]]) + 1L, info = loop_info)
-          expect_equal(nrow(res), nrow(test_data[[k]]), info = loop_info)
+  test_depths <- c(
+    # Add new shallow 0-5 cm layer, i.e., split the existing 0-8 cm layer into
+    # two layers of 0-5 cm and 5-8 cm
+    5,
+    # Add new 20-80 cm layer, i.e., split the existing 20-150 cm layer into
+    # two layers of 20-80 cm and 80-150 cm
+    80,
+    ## Add new 150-200 cm layer, i.e., extend the soil profile
+    200
+  )
 
-          # Test data consistency of new layer
-          lnew <- res[, il + 1]
-          ilo <- if (isTRUE(all.equal(il, 0L))) il + 1L else il
-          weights_not_used <- im == "interpolate" &&
-            (isTRUE(all.equal(il, 0)) ||
-                isTRUE(all.equal(il, ncol(test_data[[k]]))))
+  for (k in seq_along(test_depths)) {
+    il <- findInterval(test_depths[k], soil_layers)
+    ilt <- if (il == N) il - 1 else il
 
-          expect_equal(all(is.finite(lnew)),
-            all(is.finite(test_data[[k]][, ilo])) &&
-            if (weights_not_used) TRUE else all(is.finite(test_weights[[iw]])),
-            info = loop_info)
+    #--- test method = "interpolate" using `sand`
+    tmp <- add_soil_layer(
+      x = xsand,
+      target_cm = test_depths[k],
+      depths_cm = soil_layers,
+      method = "interpolate"
+    )
+
+    expect_equal(nrow(tmp), nrow(xsand))
+    expect_equal(ncol(tmp), N + 1)
+
+    if (il %in% c(0, N)) {
+      # Adding a new shallowest or deepest layer carries existing values forward
+      expect_equal(tmp[, ilt + 1], xsand[, ilt + 1])
+      expect_equal(tmp[, ilt + 2], xsand[, ilt + 1])
+
+    } else {
+      # Check that interpolated values are in-between previous values
+      expect_true(
+        all(
+          tmp[, ilt + 1] >= xsand[, ilt] & tmp[, ilt + 1] <= xsand[, ilt + 1] |
+          tmp[, ilt + 1] <= xsand[, ilt] & tmp[, ilt + 1] >= xsand[, ilt + 1],
+          na.rm = TRUE
+        )
+      )
+    }
+
+
+    #--- test method = "exhaust" using `TranspCoeff`
+    tmp <- add_soil_layer(
+      x = xtrco,
+      target_cm = test_depths[k],
+      depths_cm = soil_layers,
+      method = "exhaust"
+    )
+
+    expect_equal(nrow(tmp), nrow(xtrco))
+    expect_equal(ncol(tmp), N + 1)
+
+    # Check that sum of exhausted values equals the previous value
+    expect_equal(
+      apply(tmp[, (ilt + 1):(ilt + 2)], 1, sum),
+      xtrco[, ilt + 1]
+    )
+
+    # Check that exhausted values are larger than 0 and smaller then previously
+    expect_true(
+      all(
+        is.na(xtrco[, ilt + 1]) |
+        xtrco[, ilt + 1] == 0 |
+        tmp[, ilt + 1] > 0 & tmp[, ilt + 2] > 0 &
+        tmp[, ilt + 1] < xtrco[, ilt + 1] & tmp[, ilt + 2] < xtrco[, ilt + 1]
+      )
+    )
   }
+})
 
 
-  #--- Test cases that fail
-  # weights vector 'w' is not of length 2
-  expect_error(add_layer_to_soil(x = test_data[[1]], il = 1, w = c(0, 1, 0),
-    method = "interpolate"))
-  expect_error(add_layer_to_soil(x = test_data[[1]], il = 1, w = 1,
-    method = "interpolate"))
-  # but doesn't fail if a row is named 'depth_cm'
-  # Add a deeper layer
-  x <- test_data[[1]]
-  dimnames(x)[[1]][1] <- "depth_cm"
-  res <- add_layer_to_soil(x = x, il = 1, w = 5, method = "interpolate")
-  expect_equal(res[-1, 1], res[-1, 2])
-  expect_equal(res[1, 2], 2 * res[1, 1] - 5)
-  # Add a more shallow layer
-  res <- add_layer_to_soil(x = x, il = 0, w = 5, method = "interpolate")
-  expect_equal(res[-1, 1], res[-1, 2])
-  expect_equal(res[1, 1], 5)
+test_that("dissolve_soil_layer", {
+  soil_layers <- c(8, 20, 150)
+  N <- length(soil_layers)
+
+  xsand <- t(data.frame(
+    site1 = c(0.5, 0.55, NA),
+    site2 = c(0.3, 0.35, 0.4)
+  ))
+
+  xtrco <- t(data.frame(
+    site1 = c(0.9, 0.1, NA),
+    site2 = c(0.7, 0.1, 0.2)
+  ))
 
 
-  # data matrix has no columns
-  expect_error(add_layer_to_soil(x = matrix(NA, nrow = nrows, ncol = 0), il = 1,
-    w = c(0.5, 0.5), method = "interpolate"))
 
-  # requested layer cannot be added
-  expect_error(add_layer_to_soil(x = test_data[[3]], il = -1, w = c(0.5, 0.5),
-    method = "interpolate"))
-  expect_error(add_layer_to_soil(x = test_data[[3]], il = test_data[[3]] + 1L,
-    w = c(0.5, 0.5), method = "interpolate"))
+  test_depths <- c(
+    # Dissolve non-existing layer, but error
+    5,
+    # Dissolve the shallowest 0-8 cm layer, i.e., combine layers 0-8 cm and
+    # 8-20 cm into a new 0-20 cm layer
+    8,
+    # Dissolve the 8-20 cm layer, i.e., combine layers 8-20 cm and
+    # 20-150 cm into a new 8-150 cm layer
+    20,
+    # Attempt to dissolve the deepest 20-150 cm layer, but not possible
+    150
+  )
+
+  for (k in seq_along(test_depths)) {
+    il <- findInterval(test_depths[k], soil_layers)
+
+    if (il == 0) {
+      # Layer to dissolve does not exist
+      expect_error(
+        dissolve_soil_layer(
+          x = xsand,
+          target_cm = test_depths[k],
+          depths_cm = soil_layers,
+          method = "interpolate"
+        )
+      )
+
+    } else if (il == N) {
+      # Layer to dissolve is deepest and cannot be dissolved
+      expect_warning(
+        tmp <- dissolve_soil_layer(
+          x = xsand,
+          target_cm = test_depths[k],
+          depths_cm = soil_layers,
+          method = "interpolate"
+        )
+      )
+
+      expect_equal(tmp, xsand)
+
+    } else {
+
+      #--- test method = "interpolate" using `sand`
+      tmp <- dissolve_soil_layer(
+        x = xsand,
+        target_cm = test_depths[k],
+        depths_cm = soil_layers,
+        method = "interpolate"
+      )
+
+      expect_equal(nrow(tmp), nrow(xsand))
+      expect_equal(ncol(tmp), N - 1)
+
+      # Check that interpolated values are in-between previous values
+      expect_true(
+        all(
+          tmp[, il] >= xsand[, il] & tmp[, il] <= xsand[, il + 1] |
+          tmp[, il] <= xsand[, il] & tmp[, il] >= xsand[, il + 1],
+          na.rm = TRUE
+        )
+      )
+
+
+      #--- test method = "exhaust" using `TranspCoeff`
+      tmp <- dissolve_soil_layer(
+        x = xtrco,
+        target_cm = test_depths[k],
+        depths_cm = soil_layers,
+        method = "exhaust"
+      )
+
+      expect_equal(nrow(tmp), nrow(xtrco))
+      expect_equal(ncol(tmp), N - 1)
+
+      # Check that sum of exhausted values equals the previous value
+      expect_equal(
+        tmp[, il],
+        apply(xtrco[, il:(il + 1)], 1, sum)
+      )
+
+      # Check that exhausted values are larger then previously
+      expect_true(
+        all(
+          is.na(tmp[, il]) |
+          tmp[, il] > xtrco[, il] & tmp[, il] > xtrco[, il + 1]
+        )
+      )
+    }
+  }
 
 })
 
 
-
 test_that("update_soil_profile", {
-  new_slyrs <- c(5, 10, 20, 100, 200)
+  new_slyrs <- list(
+    # Add and dissolve layers
+    c(5, 10, 20, 100, 200),
+    # Only dissolve layers
+    20
+  )
 
   soil_layers <- t(data.frame(
-    site1 = c(20, 81, NA, NA, NA, NA),
-    site2 = c(8, 20, 150, NA, NA, NA)
+    site1 = c(20, 81, NA),
+    site2 = c(8, 20, 150)
   ))
 
   N_sites <- nrow(soil_layers)
@@ -104,12 +217,12 @@ test_that("update_soil_profile", {
 
   soil_data <- cbind(
     sand = t(data.frame(
-      site1 = c(0.5, 0.55, NA, NA, NA, NA),
-      site2 = c(0.3, NA, 0.4, NA, NA, NA)
+      site1 = c(0.5, 0.55, NA),
+      site2 = c(0.3, NA, 0.4)
     )),
     TranspCoeff = t(data.frame(
-      site1 = c(0.9, 0.1, NA, NA, NA, NA),
-      site2 = c(0.7, 0.1, 0.2, NA, NA, NA)
+      site1 = c(0.9, 0.1, NA),
+      site2 = c(0.7, 0.1, 0.2)
     ))
   )
   colnames(soil_data) <- paste0(
@@ -118,24 +231,48 @@ test_that("update_soil_profile", {
     seq_len(N_layers)
   )
 
-  new_soils <- update_soil_profile(
-    soil_layers = soil_layers,
-    requested_soil_layers = new_slyrs,
-    soil_data = soil_data
-  )
 
-  expect_true(new_soils[["updated"]])
+  #--- Check with previous soil depth and previous layers
+  for (k1 in 1:4) {
+    for (k2 in seq_along(new_slyrs)) {
+      new_soils <- update_soil_profile(
+        soil_layers = soil_layers,
+        requested_soil_layers = new_slyrs[[k2]],
+        soil_data = soil_data,
+        keep_prev_soildepth = k1 %in% c(1, 2),
+        keep_prev_soillayers = k1 %in% c(1, 3)
+      )
 
-  for (k in seq_len(N_sites)) {
-    expected_soillayers <- sort(unique(c(
-      soil_layers[k, ],
-      new_slyrs[new_slyrs < max(soil_layers[k, ], na.rm = TRUE)]
-    )))
+      expect_true(new_soils[["updated"]])
 
-    expect_equivalent(
-      na.exclude(new_soils[["soil_layers"]][k, ]),
-      expected_soillayers
-    )
+      for (k3 in seq_len(N_sites)) {
+        tmp <- new_slyrs[[k2]] < max(soil_layers[k3, ], na.rm = TRUE)
+        tmp_new_slyrs <- new_slyrs[[k2]][tmp]
+
+        expected_soillayers <- switch(
+          EXPR = k1,
+          # Check with previous soil depth and with previous layers
+          sort(unique(c(soil_layers[k3, ], tmp_new_slyrs))),
+
+          # Check with previous soil depth and without previous layers
+          c(tmp_new_slyrs, max(soil_layers[k3, ], na.rm = TRUE)),
+
+          # Check without previous soil depth and with previous layers
+          sort(unique(c(soil_layers[k3, ], new_slyrs[[k2]]))),
+
+          # Check without previous soil depth and without previous layers
+          # but cannot dissolve deepest layer
+          sort(unique(c(
+            new_slyrs[[k2]],
+            max(new_slyrs[[k2]], soil_layers[k3, ], na.rm = TRUE)
+          )))
+        )
+
+        expect_equivalent(
+          na.exclude(new_soils[["soil_layers"]][k3, ]),
+          expected_soillayers
+        )
+      }
+    }
   }
-
 })

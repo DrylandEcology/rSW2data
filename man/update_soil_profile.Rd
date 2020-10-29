@@ -2,7 +2,7 @@
 % Please edit documentation in R/soils_functions.R
 \name{update_soil_profile}
 \alias{update_soil_profile}
-\title{Add/remove soil layers to soil data}
+\title{Adjust soil horizon/layer depth profile and update soil data}
 \usage{
 update_soil_profile(
   soil_layers,
@@ -16,7 +16,8 @@ update_soil_profile(
 )
 }
 \arguments{
-\item{soil_layers}{A two-dimensional numeric matrix or \code{data.frame}.
+\item{soil_layers}{A two-dimensional numeric \code{matrix}
+or \code{data.frame}.
 Rows represents sites; columns represent soil layers/horizons;
 and values are depths of the lower limits of soil layers/horizons in
 centimeters.}
@@ -27,7 +28,7 @@ be added if not already present.}
 \item{soil_data}{A two-dimensional numeric matrix or \code{data.frame}.
 Rows represents sites and columns represent
 variables x soil layers/horizons combinations.
-Column names are formatted as \var{var_Lx} where \var{x} represents
+Column names are formatted as \var{"var_Lx"} where \var{x} represents
 an increasing soil layer/horizon number.}
 
 \item{variables}{A vector of character strings. The patterns identifying
@@ -35,11 +36,17 @@ all variables that are to be updated.}
 
 \item{vars_exhaust}{A vector of character strings. The patterns
 identifying variables whose values are "exhausted" when a soil layer is
-split into two layers. See \code{\link{add_layer_to_soil}} for details.}
+split into two layers. See \code{\link{update_soil_data}} for details.}
 
-\item{keep_prev_soildepth}{A logical value.}
+\item{keep_prev_soildepth}{A logical value.
+If \code{TRUE}, add \code{requested_soil_layers} only up to
+previous maximum soil depth.
+If \code{FALSE}, add all \code{requested_soil_layers}.}
 
-\item{keep_prev_soillayers}{A logical value.}
+\item{keep_prev_soillayers}{A logical value.
+If \code{TRUE}, add \code{requested_soil_layers} and keep previous layers.
+If \code{FALSE}, add \code{requested_soil_layers} and dissolve previous
+layers.}
 
 \item{verbose}{A logical value.}
 }
@@ -47,19 +54,19 @@ split into two layers. See \code{\link{add_layer_to_soil}} for details.}
 A named list with elements: \describe{
   \item{updated}{
     A logical value indicating whether any layers/horizons
-    have been added or removed.
+    have been modified (added or dissolved).
   }
   \item{soil_layers}{An updated copy of \code{soil_layers}.}
   \item{soil_data}{An updated copy of \code{soil_data}.}
 }
 }
 \description{
-Add/remove soil layers to soil data
+Adjust soil horizon/layer depth profile and update soil data
 }
 \examples{
 soil_layers <- t(data.frame(
-  site1 = c(20, 81, NA, NA, NA, NA),
-  site2 = c(8, 20, 150, NA, NA, NA)
+  site1 = c(20, 81, NA),
+  site2 = c(8, 20, 150)
 ))
 
 N <- ncol(soil_layers)
@@ -67,12 +74,12 @@ colnames(soil_layers) <- paste0("depth_L", seq_len(N))
 
 soil_data <- cbind(
   sand = t(data.frame(
-    site1 = c(0.5, 0.55, NA, NA, NA, NA),
-    site2 = c(0.3, 0.35, 0.4, NA, NA, NA)
+    site1 = c(0.5, 0.55, NA),
+    site2 = c(0.3, 0.35, 0.4)
   )),
   TranspCoeff = t(data.frame(
-    site1 = c(0.9, 0.1, NA, NA, NA, NA),
-    site2 = c(0.7, 0.1, 0.2, NA, NA, NA)
+    site1 = c(0.9, 0.1, NA),
+    site2 = c(0.7, 0.1, 0.2)
   ))
 )
 colnames(soil_data) <- paste0(
@@ -81,10 +88,23 @@ colnames(soil_data) <- paste0(
   seq_len(N)
 )
 
-new_soils <- update_soil_profile(
+new_soils1 <- update_soil_profile(
   soil_layers = soil_layers,
   requested_soil_layers = c(5, 10, 20, 100, 200),
-  soil_data = soil_data
+  soil_data = soil_data,
+  keep_prev_soildepth = FALSE,
+  keep_prev_soillayers = TRUE
 )
 
+new_soils2 <- update_soil_profile(
+  soil_layers = soil_layers,
+  requested_soil_layers = c(5, 10, 20, 100, 200),
+  soil_data = soil_data,
+  keep_prev_soildepth = TRUE,
+  keep_prev_soillayers = FALSE
+)
+
+}
+\seealso{
+\code{\link{dissolve_soil_layer}} and \code{\link{add_soil_layer}}
 }

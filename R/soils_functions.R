@@ -57,80 +57,186 @@ adjustLayer_byImp <- function(depths, imp_depth, sdepths) {
 
 
 
-#' Calculate the relative contribution of existing soil layers at a new depth
+#' Add or dissolve a soil layer/horizon
 #'
-#' @param il_new A numeric value.
-#' @param target_cm A numeric value.
-#' @param depths_cm A numeric vector.
+#' @param x A two-dimensional numeric \code{matrix}
+#'   or \code{data.frame}.
+#'   Rows represent sites (or variables);
+#'   columns represent soil layers/horizons.
+#' @param target_cm A numeric value. The lower depth in centimeter of the
+#'   soil horizon/layer that is to be added or dissolved.
+#' @param depths_cm A numeric vector. The lower depths in centimeters of the
+#'   existing soil horizons/layers.
+#' @param method A character string. The method by which variable values are
+#'   assigned to a new or dissolved soil horizon/layer:
+#'   \itemize{
+#'     \item \var{"interpolate"} calculates the mean across affected soil
+#'       horizons/layers weighted by their widths.
+#'     \item \var{"exhaust"} calculates updated values so that their sum
+#'       across affected soil horizons/layers remains constant.
+#'   }
 #'
-#' @return A numeric vector of length two.
+#' @return An updated copy of \code{x}.
+#'
+#' @section Details:
+#'   Soil layers/horizons are added independently for each row; i.e.,
+#'   rows can represent either sites or variables as long as all rows can
+#'   be subjected to the same \code{method} option.
+#'
+#' @seealso \code{\link{update_soil_profile}}
 #'
 #' @examples
-#' target <- 45
-#' depths <- c(10, 30, 50, 100)
-#' calc_weights_from_depths(
-#'   il_new = findInterval(target, depths),
-#'   target_cm = target,
-#'   depths_cm = depths
+#' soil_layers <- c(8, 20, 150)
+#' N <- length(soil_layers)
+#'
+#' ### Examples where rows represent variables
+#' xsoils <- data.frame(
+#'   sand = c(0.3, 0.35, 0.4),
+#'   clay = c(0.1, 0.15, 0.1)
 #' )
 #'
+#' t(add_soil_layer(
+#'   t(xsoils),
+#'   target_cm = 15,
+#'   depths_cm = soil_layers,
+#'   method = "interpolate"
+#' ))
+#'
+#' t(dissolve_soil_layer(
+#'   t(xsoils),
+#'   target_cm = 20,
+#'   depths_cm = soil_layers,
+#'   method = "interpolate"
+#' ))
+#'
+#'
+#' ### Examples where rows represent sites
+#' soil_data <- cbind(
+#'   sand = t(data.frame(
+#'     site1 = c(0.5, 0.55, NA),
+#'     site2 = c(0.3, 0.35, 0.4)
+#'   )),
+#'   TranspCoeff = t(data.frame(
+#'     site1 = c(0.9, 0.1, NA),
+#'     site2 = c(0.7, 0.1, 0.2)
+#'   ))
+#' )
+#' colnames(soil_data) <- paste0(
+#'   rep(c("sand", "TranspCoeff"), each = N),
+#'   "_L",
+#'   seq_len(N)
+#' )
+#'
+#' ## Add new 0-5 cm layer, i.e., split the existing 0-8 cm layer into
+#' ## two layers of 0-5 cm and 5-8 cm
+#' add_soil_layer(
+#'   soil_data[, paste0("sand_L", seq_len(N))],
+#'   target_cm = 5,
+#'   depths_cm = soil_layers,
+#'   method = "interpolate"
+#' )
+#'
+#' ## Add new 20-80 cm layer, i.e., split the existing 20-150 cm layer into
+#' ## two layers of 20-80 cm and 80-150 cm
+#' add_soil_layer(
+#'   soil_data[, paste0("TranspCoeff_L", seq_len(N))],
+#'   target_cm = 80,
+#'   depths_cm = soil_layers,
+#'   method = "exhaust"
+#' )
+#'
+#' ## Add new 150-200 cm layer, i.e., extend the soil profile
+#' add_soil_layer(
+#'   soil_data[, paste0("sand_L", seq_len(N))],
+#'   target_cm = 200,
+#'   depths_cm = soil_layers,
+#'   method = "interpolate"
+#' )
+#'
+#'
+#' ## Remove the shallowest 0-8 cm layer, i.e., combine layers 0-8 cm and
+#' ## 8-20 cm into a new 0-20 cm layer
+#' dissolve_soil_layer(
+#'   soil_data[, paste0("sand_L", seq_len(N))],
+#'   target_cm = 8,
+#'   depths_cm = soil_layers,
+#'   method = "interpolate"
+#' )
+#'
+#' ## Remove the 8-20 cm layer, i.e., combine layers 8-20 cm and
+#' ## 20-150 cm into a new 8-150 cm layer
+#' dissolve_soil_layer(
+#'   soil_data[, paste0("TranspCoeff_L", seq_len(N))],
+#'   target_cm = 20,
+#'   depths_cm = soil_layers,
+#'   method = "exhaust"
+#' )
+#'
+#' ## Attempt to remove the deepest 20-150 cm layer, but not possible to combine
+#' dissolve_soil_layer(
+#'   soil_data[, paste0("sand_L", seq_len(N))],
+#'   target_cm = 150,
+#'   depths_cm = soil_layers,
+#'   method = "interpolate"
+#' )
+#'
+#' @name update_soil_data
+NULL
+
+
+#' @rdname update_soil_data
+#'
+#' @section Details:
+#'   \code{add_soil_layer} inserts a new soil layer by splitting
+#'   an existing one into two layers.
+#' @section Details:
+#'   With \code{method == "interpolate"},
+#'   adding a new shallowest layer (\code{target_cm < depths_cm}) or
+#'   a new deepest layer (\code{target_cm > depths_cm})
+#'   will copy values from the previously shallowest or, respectively, deepest
+#'   layer.
+#'
 #' @export
-calc_weights_from_depths <- function(il_new, target_cm, depths_cm) {
-  if (il_new == 0) {
-    c(target_cm, depths_cm[1] - target_cm)
+add_soil_layer <- function(
+  x,
+  target_cm,
+  depths_cm,
+  method = c("interpolate", "exhaust")
+) {
 
-  } else if (il_new >= length(depths_cm)) {
-    c(0, target_cm)
-
-  } else {
-    abs(target_cm - depths_cm[il_new + c(1, 0)])
-
-  }
-}
-
-
-
-
-
-#' Split soil layer in two layers
-#'
-#' @param x A numeric data.frame or matrix. Columns are soil layers.
-#' @param il An integer value. The column/soil layer number after which a new
-#'   layer is added.
-#' @param w A numeric vector of length one or two. The weights used to calculate
-#'   the values of the new layer.
-#' @param method A character string. See \code{Details}.
-#'
-#' @section Details: If the weight vector is of length one and \code{x} contains
-#'   a row with name 'depth_cm', then it is assumed that the value of \code{w}
-#'   corresponds to the weight of the first layer and the weight of the second
-#'   layer is calculated as \code{(depth of first layer of x) - (first value of
-#'   w)}. If this is case and if the added layer is either more shallow or
-#'   deeper than any input layers, then the depth of the added layer is
-#'   calculated proportionally if \code{sum(w) <= 1} otherwise additively.
-#' @section Details: The method \code{interpolate} calculates the weighted mean
-#'   of the columns/layers \code{il} and \code{il + 1}. If \code{il == 0}, i.e.,
-#'   add layer at a more shallow depth than any existing layer, then values from
-#'   the previously first layer are copied to the newly created layer. The
-#'   method \code{exhaust} distributes the value of \code{il + 1} according to
-#'   the weights.
-#'
-#' @return An object like x with one column more at position \code{il + 1}.
-#' @export
-add_layer_to_soil <- function(x, il, w, method = c("interpolate", "exhaust")) {
+  #--- Check inputs
   method <- match.arg(method)
+
   if (!is.matrix(x)) {
     x <- as.matrix(x)
   }
   ncols <- dim(x)[2]
-  if (length(w) == 1L && "depth_cm" %in% dimnames(x)[[1]] &&
-      x["depth_cm", 1] >= w) {
-    w <- c(w, x["depth_cm", 1] - w)
+
+
+  #--- Determine weights based on depth profile
+  il <- findInterval(target_cm, depths_cm)
+
+  w <- if (il == 0) {
+    c(target_cm, depths_cm[1] - target_cm)
+
+  } else if (il >= length(depths_cm)) {
+    tmp <- depths_cm[length(depths_cm)]
+
+    if (length(depths_cm) == 1) {
+      c(tmp, target_cm - tmp)
+    } else {
+      c(tmp - depths_cm[length(depths_cm) - 1], target_cm - tmp)
+    }
+
+  } else {
+    abs(target_cm - depths_cm[il + c(1, 0)])
   }
+
 
   stopifnot(length(w) == 2L, ncols > 0, is.finite(il), il >= 0, il <= ncols)
   w_sum <- sum(w)
 
+  #--- Add new layer
   if (ncols > il) {
     # Add layer at an intermediate depth of existing layers
     x <- x[, c(seq_len(il), NA, (il + 1):ncols), drop = FALSE]
@@ -142,12 +248,6 @@ add_layer_to_soil <- function(x, il, w, method = c("interpolate", "exhaust")) {
       } else {
         # Add layer at a more shallow depth than any existing layer
         x[, 1] <- x[, 2]
-        if ("depth_cm" %in% dimnames(x)[[1]])
-          x["depth_cm", 1] <- if (w_sum <= 1 || w[1] > x["depth_cm", 2]) {
-            x["depth_cm", 2] * w[1] / w_sum
-          } else {
-            w[1]
-          }
       }
 
     } else if (method == "exhaust") {
@@ -161,14 +261,9 @@ add_layer_to_soil <- function(x, il, w, method = c("interpolate", "exhaust")) {
 
     if (method == "interpolate") {
       x[, il + 1] <- x[, il]
-      if ("depth_cm" %in% dimnames(x)[[1]])
-        x["depth_cm", il + 1] <- if (w_sum <= 1) {
-          x["depth_cm", il] * (1 + w[2] / w_sum)
-        } else {
-          x["depth_cm", il] + w[2]
-        }
 
     } else if (method == "exhaust") {
+      # First calculate x[, il + 1] so that x[, il] maintains previous value
       x[, il + 1] <- x[, il] * w[2] / w_sum
       x[, il] <- x[, il] * w[1] / w_sum
     }
@@ -178,10 +273,74 @@ add_layer_to_soil <- function(x, il, w, method = c("interpolate", "exhaust")) {
 }
 
 
-
-#' Add/remove soil layers to soil data
+#' @rdname update_soil_data
 #'
-#' @param soil_layers A two-dimensional numeric matrix or \code{data.frame}.
+#' @section Details:
+#'   \code{dissolve_soil_layer} combines/dissolves a soil layer with a lower
+#'   depth of \code{target_cm} with the next deeper layer.
+#'   The deepest (or only) soil layer cannot be removed in which case
+#'   the code issues a warning and returns an unmodified copy of \code{x}.
+#'
+#' @export
+dissolve_soil_layer <- function(
+  x,
+  target_cm,
+  depths_cm,
+  method = c("interpolate", "exhaust")
+) {
+  #--- Check inputs
+  method <- match.arg(method)
+
+  if (!is.matrix(x)) x <- data.matrix(x)
+
+  ncols <- dim(x)[2]
+
+  il <- which(target_cm == depths_cm)
+
+  if (length(il) != 1) {
+    stop("Unique soil layer to dissolve could not be located.")
+  }
+
+  if (ncols > 1 && il < ncols) {
+
+    #--- Remove column
+    xnew <- x[, -il, drop = FALSE]
+
+    if (method == "interpolate") {
+      # mean of previous layers weighted by layer-widths
+      w <- if (il == 1) {
+        c(target_cm, depths_cm[il + 1] - target_cm)
+      } else {
+        c(target_cm - depths_cm[il - 1], depths_cm[il + 1] - target_cm)
+      }
+
+      xnew[, il] <- (x[, il] * w[1] + x[, il + 1] * w[2]) / sum(w)
+
+    } else if (method == "exhaust") {
+      # sum of previous layers
+      xnew[, il] <- apply(x[, il:(il + 1), drop = FALSE], 1, sum)
+    }
+
+    x <- xnew
+
+  } else {
+    #--- Cannot remove the deepest (or only) soil layer
+    if (ncols == 1) {
+      warning("Cannot remove/combine the only soil layer.")
+    } else {
+      warning("Cannot remove/combine the deepest soil layer.")
+    }
+  }
+
+  x
+}
+
+
+
+#' Adjust soil horizon/layer depth profile and update soil data
+#'
+#' @param soil_layers A two-dimensional numeric \code{matrix}
+#'   or \code{data.frame}.
 #'   Rows represents sites; columns represent soil layers/horizons;
 #'   and values are depths of the lower limits of soil layers/horizons in
 #'   centimeters.
@@ -190,30 +349,39 @@ add_layer_to_soil <- function(x, il, w, method = c("interpolate", "exhaust")) {
 #' @param soil_data A two-dimensional numeric matrix or \code{data.frame}.
 #'   Rows represents sites and columns represent
 #'   variables x soil layers/horizons combinations.
-#'   Column names are formatted as \var{var_Lx} where \var{x} represents
+#'   Column names are formatted as \var{"var_Lx"} where \var{x} represents
 #'   an increasing soil layer/horizon number.
 #' @param variables A vector of character strings. The patterns identifying
 #'   all variables that are to be updated.
 #' @param vars_exhaust A vector of character strings. The patterns
 #'   identifying variables whose values are "exhausted" when a soil layer is
-#'   split into two layers. See \code{\link{add_layer_to_soil}} for details.
+#'   split into two layers. See \code{\link{update_soil_data}} for details.
 #' @param keep_prev_soildepth A logical value.
+#'   If \code{TRUE}, add \code{requested_soil_layers} only up to
+#'   previous maximum soil depth.
+#'   If \code{FALSE}, add all \code{requested_soil_layers}.
 #' @param keep_prev_soillayers A logical value.
+#'   If \code{TRUE}, add \code{requested_soil_layers} and keep previous layers.
+#'   If \code{FALSE}, add \code{requested_soil_layers} and dissolve previous
+#'   layers.
 #' @param verbose A logical value.
 #'
 #' @return A named list with elements: \describe{
 #'   \item{updated}{
 #'     A logical value indicating whether any layers/horizons
-#'     have been added or removed.
+#'     have been modified (added or dissolved).
 #'   }
 #'   \item{soil_layers}{An updated copy of \code{soil_layers}.}
 #'   \item{soil_data}{An updated copy of \code{soil_data}.}
 #' }
 #'
+#' @seealso
+#'   \code{\link{dissolve_soil_layer}} and \code{\link{add_soil_layer}}
+#'
 #' @examples
 #' soil_layers <- t(data.frame(
-#'   site1 = c(20, 81, NA, NA, NA, NA),
-#'   site2 = c(8, 20, 150, NA, NA, NA)
+#'   site1 = c(20, 81, NA),
+#'   site2 = c(8, 20, 150)
 #' ))
 #'
 #' N <- ncol(soil_layers)
@@ -221,12 +389,12 @@ add_layer_to_soil <- function(x, il, w, method = c("interpolate", "exhaust")) {
 #'
 #' soil_data <- cbind(
 #'   sand = t(data.frame(
-#'     site1 = c(0.5, 0.55, NA, NA, NA, NA),
-#'     site2 = c(0.3, 0.35, 0.4, NA, NA, NA)
+#'     site1 = c(0.5, 0.55, NA),
+#'     site2 = c(0.3, 0.35, 0.4)
 #'   )),
 #'   TranspCoeff = t(data.frame(
-#'     site1 = c(0.9, 0.1, NA, NA, NA, NA),
-#'     site2 = c(0.7, 0.1, 0.2, NA, NA, NA)
+#'     site1 = c(0.9, 0.1, NA),
+#'     site2 = c(0.7, 0.1, 0.2)
 #'   ))
 #' )
 #' colnames(soil_data) <- paste0(
@@ -235,10 +403,20 @@ add_layer_to_soil <- function(x, il, w, method = c("interpolate", "exhaust")) {
 #'   seq_len(N)
 #' )
 #'
-#' new_soils <- update_soil_profile(
+#' new_soils1 <- update_soil_profile(
 #'   soil_layers = soil_layers,
 #'   requested_soil_layers = c(5, 10, 20, 100, 200),
-#'   soil_data = soil_data
+#'   soil_data = soil_data,
+#'   keep_prev_soildepth = FALSE,
+#'   keep_prev_soillayers = TRUE
+#' )
+#'
+#' new_soils2 <- update_soil_profile(
+#'   soil_layers = soil_layers,
+#'   requested_soil_layers = c(5, 10, 20, 100, 200),
+#'   soil_data = soil_data,
+#'   keep_prev_soildepth = TRUE,
+#'   keep_prev_soillayers = FALSE
 #' )
 #'
 #' @export
@@ -284,8 +462,16 @@ update_soil_profile <- function(
 
   # Prepare output container
   has_updates <- FALSE
-  new_soil_data <- soil_data
-  new_soil_layers <- soil_layers
+  new_soil_data <- array(
+    NA,
+    dim = dim(soil_data),
+    dimnames = dimnames(soil_data)
+  )
+  new_soil_layers <- array(
+    NA,
+    dim = dim(soil_layers),
+    dimnames = dimnames(soil_layers)
+  )
 
 
   #--- Identify layers and groups of sites with the same profile (soil layers)
@@ -304,7 +490,7 @@ update_soil_profile <- function(
 
     new_soil_data_by_var <- NULL
 
-    #--- Loop through sites with same layer profile and make adjustements
+    #--- Loop through sites with same layer profile and make adjustments
     for (k1 in seq_along(layer_sets)) {
       if (verbose) {
         print(paste(
@@ -314,6 +500,11 @@ update_soil_profile <- function(
 
       il_set <- avail_sl_ids == layer_sets[k1]
       if (sum(il_set, na.rm = TRUE) == 0) next
+
+      new_soil_data_by_var <- lapply(
+        soil_data_by_var,
+        function(x) x[il_set, , drop = FALSE]
+      )
 
 
       # --- Add requested soil layers
@@ -326,81 +517,117 @@ update_soil_profile <- function(
         req_sd_toadd <- req_sd_toadd[req_sd_toadd < max(ldset)]
       }
 
-      if (length(req_sd_toadd) == 0) next
+      if (length(req_sd_toadd) > 0) {
+        # Add identified layers
+        for (lnew in req_sd_toadd) {
+          for (k2 in seq_along(variables)) {
+            new_soil_data_by_var[[k2]] <- add_soil_layer(
+              new_soil_data_by_var[[k2]],
+              target_cm = lnew,
+              depths_cm = ldset,
+              method = if (variables[k2] %in% vars_exhaust) {
+                "exhaust"
+              } else {
+                "interpolate"
+              }
+            )
+          }
 
-      # Add identified layers
-      new_soil_data_by_var <- lapply(
-        soil_data_by_var,
-        function(x) x[il_set, , drop = FALSE]
-      )
-
-      for (lnew in req_sd_toadd) {
-        ilnew <- findInterval(lnew, ldset)
-        il_weight <- rSW2data::calc_weights_from_depths(ilnew, lnew, ldset)
-
-        for (k2 in seq_along(variables)) {
-          new_soil_data_by_var[[k2]] <- rSW2data::add_layer_to_soil(
-            new_soil_data_by_var[[k2]],
-            il = ilnew,
-            w = il_weight,
-            method = if (variables[k2] %in% vars_exhaust) {
-              "exhaust"
-            } else {
-              "interpolate"
-            }
-          )
+          ldset <- sort(c(ldset, lnew))
         }
-
-        ldset <- sort(c(ldset, lnew))
       }
 
 
       #--- Remove soil layers that are no longer requested
       if (isFALSE(keep_prev_soillayers)) {
-        # Identify which layers to delete
-        tmp_req <- if (isTRUE(keep_prev_soildepth)) {
+        # Identify which layers to dissolve, but cannot dissolve deepest layer
+        tmp_keep <- if (isTRUE(keep_prev_soildepth)) {
           c(
             requested_soil_layers[requested_soil_layers < max(ldset_prev)],
             ldset_prev[length(ldset_prev)]
           )
 
         } else {
-          requested_soil_layers
+          c(requested_soil_layers, max(ldset))
         }
 
-        req_sd_todel <- setdiff(ldset, tmp_req)
+        req_sd_todis <- setdiff(ldset, tmp_keep)
 
-        if (length(req_sd_todel) > 0) {
-          # Delete layers
-          stop("Removing soil layers is not yet implemented.")
+        if (length(req_sd_todis) > 0) {
+          # Dissolve previous layers
+          for (ldis in req_sd_todis) {
+            for (k2 in seq_along(variables)) {
+              new_soil_data_by_var[[k2]] <- dissolve_soil_layer(
+                new_soil_data_by_var[[k2]],
+                target_cm = ldis,
+                depths_cm = ldset,
+                method = if (variables[k2] %in% vars_exhaust) {
+                  "exhaust"
+                } else {
+                  "interpolate"
+                }
+              )
+            }
+
+            ldset <- ldset[ldset != ldis]
+          }
         }
       }
 
 
       #--- Update soil data
-      lyrs <- seq_along(ldset)
+      nadd <- length(ldset) - ncol(new_soil_layers)
 
-      for (k2 in seq_along(variables)) {
-        tmp <- grep(variables[k2], cns_data)
+      if (nadd > 0) {
+        # Expand data.frames because of additional soil layers (columns)
+        ids <- ncol(new_soil_layers) + seq_len(nadd)
 
-        if (length(tmp) < length(ldset)) {
-          stop(
-            "`sw_input_soils` has columns for ", length(tmp), " soil layers, ",
-            "but ", length(ldset), " are requested."
+        new_soil_layers <- cbind(
+          new_soil_layers,
+          matrix(
+            data = NA,
+            nrow = nrow(new_soil_layers),
+            ncol = nadd,
+            dimnames = list(
+              NULL,
+              paste0("depth_L", ids)
+            )
           )
-        }
+        )
 
-        icol <- tmp[lyrs]
-
-        new_soil_data[il_set, icol] <- round(
-          new_soil_data_by_var[[k2]][, lyrs],
-          if (variables[k2] %in% vars_exhaust) 4L else 2L
+        new_soil_data <- cbind(
+          new_soil_data,
+          matrix(
+            data = NA,
+            nrow = nrow(new_soil_data),
+            ncol = length(variables) * nadd,
+            dimnames = list(
+              NULL,
+              paste0(
+                rep(variables, nadd),
+                "_L",
+                rep(ids, each = length(variables))
+              )
+            )
+          )
         )
       }
 
+      lyrs <- seq_along(ldset)
+
+      for (k2 in seq_along(variables)) {
+        tmp <- grep(variables[k2], colnames(new_soil_data))
+
+        new_soil_data[il_set, tmp[lyrs]] <- new_soil_data_by_var[[k2]][, lyrs]
+      }
+
       # Update soil layer depths
-      new_soil_layers[il_set, lyrs] <-
-        matrix(ldset, nrow = sum(il_set), ncol = length(ldset), byrow = TRUE)
+      new_soil_layers[il_set, lyrs] <- matrix(
+        data = ldset,
+        nrow = sum(il_set),
+        ncol = length(ldset),
+        byrow = TRUE
+      )
 
       has_updates <- TRUE
     }
