@@ -18,7 +18,8 @@ Suggests:
     testthat,
     spelling,
     lintr,
-    covr
+    covr,
+    utils
 Remotes:
     github::DrylandEcology/rSW2utils
 License: GPL-3
