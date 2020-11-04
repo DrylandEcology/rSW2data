@@ -175,137 +175,212 @@ check_depth_table <- function(table_depths, soil_depth, n_layers) {
 #' @param n_layers A numeric vector. The number of soil layers at each site.
 #' @param vars A vector of character strings. Soil texture variables to check
 #'   as base name of the column names of \code{table_texture}. See examples.
+#' @param vars_notzero A vector of character strings. Variables,
+#'   as base name of the column names of \code{table_texture}, that are
+#'   checked against being zero.
 #'
-#' @return A named list with \describe{
-#'   \item{checks_passed}{A logical value. \code{TRUE} if no missing values.}
-#'   \item{missing_N}{
-#'     An integer n x p matrix for n sites and p variables (\code{vars}).
-#'     The number of missing values for a site \var{i} and variable \var{k}
-#'     among the specified soil layers (\code{n_layers[i]}).
+#' @return A list with three elements
+#'   \itemize{
+#'     \item \var{checks_passed}:
+#'       A logical value. \code{TRUE} if no missing values.
+#'
+#'     \item \var{missing}: See below
+#'
+#'     \item \var{zero}:
+#'       See below; \code{NULL} if \code{vars_notzero} is \code{NULL}.
 #'   }
-#'   \item{is_missing_anylayer}{
-#'     A logical n x p matrix for n sites and p variables (\code{vars}).
-#'     \code{TRUE} for a site \var{i} if at least one value of variable \var{k}
-#'     is missing among the specified soil layer (\code{n_layers[i]}).
+#'
+#'   The latter two elements are named lists each with elements:
+#'   \itemize{
+#'     \item \var{cond_N}:
+#'       An integer n x p matrix for n sites and p variables
+#'       (\code{vars} or \code{vars_notzero} respectively).
+#'       The number of missing/zero values for a site \var{i} and
+#'       variable \var{k} among the specified soil layers (\code{n_layers[i]}).
+#'
+#'     \item \var{is_cond_anylayer}:
+#'       A logical n x p matrix for n sites and p variables
+#'       (\code{vars} or \code{vars_notzero} respectively).
+#'       \code{TRUE} for a site \var{i} if at least one value of
+#'       variable \var{k} is missing/zero among the specified
+#'       soil layers (\code{n_layers[i]}).
+#'
+#'     \item \var{is_cond_pctlayer}: \code{cond_N} divided by \code{n_layers}
+#'
+#'     \item \var{ids_sites_cond_anylayer}:
+#'       An integer vector of site indices (row number in \code{table_texture})
+#'       for which at least one variable in at least one layer is missing/zero.
+#'
+#'     \item \var{ids_sites_cond_alllayers}:
+#'       An integer vector of site indices (row number in \code{table_texture})
+#'       for which at least one variable is missing/zero in all layers.
+#'
+#'     \item \var{ids_sites_cond_somelayers}:
+#'       \var{ids_sites_cond_anylayer} without
+#'       \var{ids_sites_cond_alllayers}
 #'   }
-#'   \item{is_missing_pctlayer}{\code{missing_N} divided by \code{n_layers}}
-#'   \item{ids_sites_missing_anylayer}{
-#'     An integer vector of site indices (row number in \code{table_texture})
-#'     for which at least one variable in at least one layer is missing.
-#'   }
-#'   \item{ids_sites_missing_alllayers}{
-#'     An integer vector of site indices (row number in \code{table_texture})
-#'     for which at least one variable is missing in all layers.
-#'   }
-#'   \item{ids_sites_missing_somelayers}{
-#'     \code{ids_sites_missing_anylayer} without
-#'     \code{ids_sites_missing_alllayers}
-#'   }
-#' }
 #'
 #' @examples
-#' soils <- matrix(
-#'   data = c(
-#'     0.828, 0.963, NA, 0.065, 0.03, 0.03,
-#'     0.57, NA, NA, 0.25, 0.03, 0.03
-#'   ),
-#'   nrow = 3,
-#'   dimnames = list(NULL, paste0(c("sand_L", "clay_L"), rep(1:2, each = 2)))
-#' )
-#' N_horizons <- rep(2, 3)
+#' soils <- data.matrix(data.frame(
+#'   sand_L1 = c(0.828, 0.963, NA),
+#'   clay_L1 = c(0.065, 0.03, 0.03),
+#'   sand_L2 = c(0.57, NA, NA),
+#'   clay_L2 = c(0.25, 0.03, 0.03),
+#'   sand_L3 = c(0, NA, NA),
+#'   clay_L3 = c(0, NA, NA)
+#' ))
+#' N_horizons <- rep(3, 3)
 #'
 #' texture_checks <- check_texture_table(
 #'   table_texture = soils,
 #'   n_layers = N_horizons,
-#'   vars = c("sand", "clay")
+#'   vars = c("sand", "clay"),
+#'   vars_notzero = c("sand", "clay")
 #' )
 #'
-#' # Does our soils table have any issues?
+#' # Does our soils table have no issues?
 #' texture_checks[["checks_passed"]]
 #'
 #' if (!texture_checks[["checks_passed"]]) {
+#'   #--- What are issues with missing data?
+#'   check_missing <- texture_checks[["missing"]]
+#'
 #'   # How many sites have at least one missing value per variable?
-#'   apply(texture_checks[["is_missing_anylayer"]], 2, sum)
+#'   apply(check_missing[["is_cond_anylayer"]], 2, sum)
 #'
 #'   # Tabulate sites for number of layers with any missing sand values against
 #'   # proportion of layers with any missing sand values
 #'   addmargins(table(
-#'     missing_pct = texture_checks[["is_missing_pctlayer"]][, "sand"],
-#'     missing_N = texture_checks[["missing_N"]][, "sand"]
+#'     missing_pct = check_missing[["is_cond_pctlayer"]][, "sand"],
+#'     missing_N = check_missing[["cond_N"]][, "sand"]
 #'   ))
 #'
 #'   # Tabulate sites number of layers with only missing values against
 #'   # proportion of layers with only missing values
-#'   ids <- texture_checks[["ids_sites_missing_alllayers"]]
+#'   ids <- check_missing[["ids_sites_cond_alllayers"]]
 #'   addmargins(table(
-#'     missing_pct = texture_checks[["is_missing_pctlayer"]][ids, ],
-#'     missing_N = texture_checks[["missing_N"]][ids, ]
+#'     missing_pct = check_missing[["is_cond_pctlayer"]][ids, ],
+#'     missing_N = check_missing[["cond_N"]][ids, ]
 #'   ))
+#'
+#'   #--- What are issues with zero data?
+#'   check_zero <- texture_checks[["zero"]]
+#'
+#'   # How many sites have at least one zero value per variable?
+#'   apply(check_zero[["is_cond_anylayer"]], 2, sum)
 #' }
 #'
 #' @export
-check_texture_table <- function(table_texture, n_layers,
-  vars = c("sand", "clay")
+check_texture_table <- function(
+  table_texture,
+  n_layers,
+  vars = c("sand", "clay"),
+  vars_notzero = NULL
 ) {
 
   # Find missing values
-  list_missing <- list()
+  list_missing <- check_soillayer_condition(
+    data = table_texture,
+    n_layers = n_layers,
+    vars = vars,
+    fun = function(x) !is.finite(x)
+  )
+
+  res_missing <- aggregate_soillayer_condition(list_missing, n_layers)
+
+  # Find zero values
+  if (!is.null(vars_notzero)) {
+    list_zeros <- check_soillayer_condition(
+      data = table_texture,
+      n_layers = n_layers,
+      vars = vars_notzero,
+      fun = function(x) abs(x) < sqrt(.Machine$double.eps)
+    )
+
+    res_zero <- aggregate_soillayer_condition(list_zeros, n_layers)
+
+  } else {
+    res_zero <- NULL
+  }
+
+
+  list(
+    checks_passed =
+      !any(res_missing[["is_cond_anylayer"]]) &&
+      (is.null(res_zero) || !any(res_zero[["is_cond_anylayer"]])),
+    missing = res_missing,
+    zero = res_zero
+  )
+}
+
+
+# Helper function for `check_texture_table()`
+check_soillayer_condition <- function(data, n_layers, vars, fun) {
+  res <- list()
 
   for (k in seq_along(vars)) {
-    ivars <- grep(vars[k], colnames(table_texture), ignore.case = TRUE)
+    ivars <- grep(vars[k], colnames(data), ignore.case = TRUE)
 
     tmp <- apply(
       X = cbind(
         n_layers,
-        table_texture[, ivars]
+        data[, ivars]
       ),
       MARGIN = 1,
       function(x) {
         n <- length(x) - 1
         ids <- seq_len(min(n, x[1]))
         tmp <- rep(NA, n)
-        tmp[ids] <- !is.finite(x[1 + ids])
+        tmp[ids] <- fun(x[1 + ids])
         tmp
       }
     )
 
-    list_missing[[vars[k]]] <- if (is.null(dim(tmp))) {
+    res[[vars[k]]] <- if (is.null(dim(tmp))) {
       matrix(tmp, ncol = 1)
     } else {
       t(tmp)
     }
   }
 
-  # Number of missing values per site
-  vars_missing_N <- sapply(
-    list_missing,
+  res
+}
+
+# Helper function for `check_texture_table()`
+aggregate_soillayer_condition <- function(x, n_layers) {
+  res <- list()
+
+  # Number of conditioned values per site
+  res[["cond_N"]] <- sapply(
+    x,
     function(x) apply(x, 1, sum, na.rm = TRUE)
   )
 
-  vars_missing_any <- vars_missing_N > 0
+  res[["is_cond_anylayer"]] <- res[["cond_N"]] > 0
 
-  # Percentage of missing values per site
-  vars_missing_pct <- sweep(vars_missing_N, 1, n_layers, FUN = "/")
-  vars_missing_pct[n_layers == 0] <- 0
-
-
-  ids_sites_missing_anylayer <- which(
-    apply(vars_missing_any, 1, function(x) any(x))
+  # Percentage of conditioned values per site
+  res[["is_cond_pctlayer"]] <- sweep(
+    x = res[["cond_N"]],
+    MARGIN = 1,
+    STATS = n_layers,
+    FUN = "/"
   )
-  ids_sites_missing_alllayers <- which(
-    apply(vars_missing_pct, 1, function(x) any(x == 1))
+  res[["is_cond_pctlayer"]][n_layers == 0] <- 0
+
+
+  res[["ids_sites_cond_anylayer"]] <- which(
+    apply(res[["is_cond_anylayer"]], 1, function(x) any(x))
   )
 
-  list(
-    checks_passed = !any(vars_missing_any),
-    missing_N = vars_missing_N,
-    is_missing_anylayer = vars_missing_any,
-    is_missing_pctlayer = vars_missing_pct,
-    ids_sites_missing_anylayer = ids_sites_missing_anylayer,
-    ids_sites_missing_alllayers = ids_sites_missing_alllayers,
-    ids_sites_missing_somelayers = setdiff(
-      ids_sites_missing_anylayer,
-      ids_sites_missing_alllayers
-    )
+  res[["ids_sites_cond_alllayers"]] <- which(
+    apply(res[["is_cond_pctlayer"]], 1, function(x) any(x == 1))
   )
+
+  res[["ids_sites_cond_somelayers"]] <- setdiff(
+    res[["ids_sites_cond_anylayer"]],
+    res[["ids_sites_cond_alllayers"]]
+  )
+
+
+  res
 }

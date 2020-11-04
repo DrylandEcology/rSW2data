@@ -45,31 +45,37 @@ test_that("check_depth_table", {
 
 
 test_that("check_texture_table", {
-  soils <- matrix(
-    data = c(
-      0.828, 0.963, NA, 0.065, 0.03, 0.03,
-      0.57, NA, NA, 0.25, 0.03, 0.03
-    ),
-    nrow = 3,
-    dimnames = list(NULL, paste0(c("sand_L", "clay_L"), rep(1:2, each = 2)))
-  )
-
-  N_horizons <- rep(2, 3)
+  soils <- data.matrix(data.frame(
+    sand_L1 = c(0.828, 0.963, NA),
+    clay_L1 = c(0.065, 0.03, 0.03),
+    sand_L2 = c(0.57, NA, NA),
+    clay_L2 = c(0.25, 0.03, 0.03),
+    sand_L3 = c(0, NA, NA),
+    clay_L3 = c(0, NA, NA)
+  ))
+  N_horizons <- rep(3, 3)
 
   texture_checks <- check_texture_table(
     table_texture = soils,
     n_layers = N_horizons,
-    vars = c("sand", "clay")
+    vars = c("sand", "clay"),
+    vars_notzero = c("sand", "clay")
   )
 
   # Does our soils table have any issues?
   expect_false(texture_checks[["checks_passed"]])
 
+  # Types of issues
+  expected_issuetypes <- c("checks_passed", "missing", "zero")
+  expect_named(texture_checks, expected_issuetypes)
+
   # Names of issues
-  expected_names <- c(
-    "checks_passed", "missing_N", "is_missing_anylayer", "is_missing_pctlayer",
-    "ids_sites_missing_anylayer", "ids_sites_missing_alllayers",
-    "ids_sites_missing_somelayers"
+  expected_issuenames <- c(
+    "cond_N", "is_cond_anylayer", "is_cond_pctlayer",
+    "ids_sites_cond_anylayer", "ids_sites_cond_alllayers",
+    "ids_sites_cond_somelayers"
   )
-  expect_named(texture_checks, expected_names)
+
+  expect_named(texture_checks[["missing"]], expected_issuenames)
+  expect_named(texture_checks[["zero"]], expected_issuenames)
 })

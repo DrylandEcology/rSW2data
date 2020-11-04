@@ -4,7 +4,12 @@
 \alias{check_texture_table}
 \title{Check availability of soil texture values for a specified number of layers}
 \usage{
-check_texture_table(table_texture, n_layers, vars = c("sand", "clay"))
+check_texture_table(
+  table_texture,
+  n_layers,
+  vars = c("sand", "clay"),
+  vars_notzero = NULL
+)
 }
 \arguments{
 \item{table_texture}{A two-dimensional numeric object.
@@ -15,76 +20,104 @@ soil layers \var{1, ..., n}. See examples.}
 
 \item{vars}{A vector of character strings. Soil texture variables to check
 as base name of the column names of \code{table_texture}. See examples.}
+
+\item{vars_notzero}{A vector of character strings. Variables,
+as base name of the column names of \code{table_texture}, that are
+checked against being zero.}
 }
 \value{
-A named list with \describe{
-  \item{checks_passed}{A logical value. \code{TRUE} if no missing values.}
-  \item{missing_N}{
-    An integer n x p matrix for n sites and p variables (\code{vars}).
-    The number of missing values for a site \var{i} and variable \var{k}
-    among the specified soil layers (\code{n_layers[i]}).
+A list with three elements
+  \itemize{
+    \item \var{checks_passed}:
+      A logical value. \code{TRUE} if no missing values.
+
+    \item \var{missing}: See below
+
+    \item \var{zero}:
+      See below; \code{NULL} if \code{vars_notzero} is \code{NULL}.
   }
-  \item{is_missing_anylayer}{
-    A logical n x p matrix for n sites and p variables (\code{vars}).
-    \code{TRUE} for a site \var{i} if at least one value of variable \var{k}
-    is missing among the specified soil layer (\code{n_layers[i]}).
+
+  The latter two elements are named lists each with elements:
+  \itemize{
+    \item \var{cond_N}:
+      An integer n x p matrix for n sites and p variables
+      (\code{vars} or \code{vars_notzero} respectively).
+      The number of missing/zero values for a site \var{i} and
+      variable \var{k} among the specified soil layers (\code{n_layers[i]}).
+
+    \item \var{is_cond_anylayer}:
+      A logical n x p matrix for n sites and p variables
+      (\code{vars} or \code{vars_notzero} respectively).
+      \code{TRUE} for a site \var{i} if at least one value of
+      variable \var{k} is missing/zero among the specified
+      soil layers (\code{n_layers[i]}).
+
+    \item \var{is_cond_pctlayer}: \code{cond_N} divided by \code{n_layers}
+
+    \item \var{ids_sites_cond_anylayer}:
+      An integer vector of site indices (row number in \code{table_texture})
+      for which at least one variable in at least one layer is missing/zero.
+
+    \item \var{ids_sites_cond_alllayers}:
+      An integer vector of site indices (row number in \code{table_texture})
+      for which at least one variable is missing/zero in all layers.
+
+    \item \var{ids_sites_cond_somelayers}:
+      \var{ids_sites_cond_anylayer} without
+      \var{ids_sites_cond_alllayers}
   }
-  \item{is_missing_pctlayer}{\code{missing_N} divided by \code{n_layers}}
-  \item{ids_sites_missing_anylayer}{
-    An integer vector of site indices (row number in \code{table_texture})
-    for which at least one variable in at least one layer is missing.
-  }
-  \item{ids_sites_missing_alllayers}{
-    An integer vector of site indices (row number in \code{table_texture})
-    for which at least one variable is missing in all layers.
-  }
-  \item{ids_sites_missing_somelayers}{
-    \code{ids_sites_missing_anylayer} without
-    \code{ids_sites_missing_alllayers}
-  }
-}
 }
 \description{
 Check availability of soil texture values for a specified number of layers
 }
 \examples{
-soils <- matrix(
-  data = c(
-    0.828, 0.963, NA, 0.065, 0.03, 0.03,
-    0.57, NA, NA, 0.25, 0.03, 0.03
-  ),
-  nrow = 3,
-  dimnames = list(NULL, paste0(c("sand_L", "clay_L"), rep(1:2, each = 2)))
-)
-N_horizons <- rep(2, 3)
+soils <- data.matrix(data.frame(
+  sand_L1 = c(0.828, 0.963, NA),
+  clay_L1 = c(0.065, 0.03, 0.03),
+  sand_L2 = c(0.57, NA, NA),
+  clay_L2 = c(0.25, 0.03, 0.03),
+  sand_L3 = c(0, NA, NA),
+  clay_L3 = c(0, NA, NA)
+))
+N_horizons <- rep(3, 3)
 
 texture_checks <- check_texture_table(
   table_texture = soils,
   n_layers = N_horizons,
-  vars = c("sand", "clay")
+  vars = c("sand", "clay"),
+  vars_notzero = c("sand", "clay")
 )
 
-# Does our soils table have any issues?
+# Does our soils table have no issues?
 texture_checks[["checks_passed"]]
 
 if (!texture_checks[["checks_passed"]]) {
+  #--- What are issues with missing data?
+  check_missing <- texture_checks[["missing"]]
+
   # How many sites have at least one missing value per variable?
-  apply(texture_checks[["is_missing_anylayer"]], 2, sum)
+  apply(check_missing[["is_cond_anylayer"]], 2, sum)
 
   # Tabulate sites for number of layers with any missing sand values against
   # proportion of layers with any missing sand values
   addmargins(table(
-    missing_pct = texture_checks[["is_missing_pctlayer"]][, "sand"],
-    missing_N = texture_checks[["missing_N"]][, "sand"]
+    missing_pct = check_missing[["is_cond_pctlayer"]][, "sand"],
+    missing_N = check_missing[["cond_N"]][, "sand"]
   ))
 
   # Tabulate sites number of layers with only missing values against
   # proportion of layers with only missing values
-  ids <- texture_checks[["ids_sites_missing_alllayers"]]
+  ids <- check_missing[["ids_sites_cond_alllayers"]]
   addmargins(table(
-    missing_pct = texture_checks[["is_missing_pctlayer"]][ids, ],
-    missing_N = texture_checks[["missing_N"]][ids, ]
+    missing_pct = check_missing[["is_cond_pctlayer"]][ids, ],
+    missing_N = check_missing[["cond_N"]][ids, ]
   ))
+
+  #--- What are issues with zero data?
+  check_zero <- texture_checks[["zero"]]
+
+  # How many sites have at least one zero value per variable?
+  apply(check_zero[["is_cond_anylayer"]], 2, sum)
 }
 
 }
