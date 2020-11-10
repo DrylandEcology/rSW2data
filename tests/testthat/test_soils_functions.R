@@ -243,7 +243,13 @@ test_that("update_soil_profile", {
         keep_prev_soillayers = k1 %in% c(1, 3)
       )
 
-      expect_true(new_soils[["updated"]])
+      if (all(new_slyrs[[k2]] %in% soil_layers) && k1 %in% c(1, 3)) {
+        # no updates: requested layers exists and previous ones are kept
+        expect_false(new_soils[["updated"]])
+      } else {
+        expect_true(new_soils[["updated"]])
+      }
+
 
       for (k3 in seq_len(N_sites)) {
         tmp <- new_slyrs[[k2]] < max(soil_layers[k3, ], na.rm = TRUE)
@@ -273,6 +279,19 @@ test_that("update_soil_profile", {
           expected_soillayers
         )
       }
+
+      # Check that re-calling function with previous output produces no changes
+      new_soils2 <- update_soil_profile(
+        soil_layers = new_soils[["soil_layers"]],
+        requested_soil_layers = new_slyrs[[k2]],
+        soil_data = new_soils[["soil_data"]],
+        keep_prev_soildepth = k1 %in% c(1, 2),
+        keep_prev_soillayers = k1 %in% c(1, 3)
+      )
+
+      expect_false(new_soils2[["updated"]])
+      expect_equal(new_soils2[["soil_layers"]], new_soils[["soil_layers"]])
+      expect_equal(new_soils2[["soil_data"]], new_soils[["soil_data"]])
     }
   }
 })

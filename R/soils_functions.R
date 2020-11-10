@@ -480,6 +480,8 @@ update_soil_profile <- function(
   layer_sets <- unique(avail_sl_ids)
   N_sets <- length(layer_sets)
 
+  has_updates <- FALSE
+
   if (N_sets > 0) {
     if (verbose) {
       message("Processing ", N_sets, " soil layer sets:")
@@ -505,6 +507,8 @@ update_soil_profile <- function(
 
     #--- Loop through sites with same layer profile and make adjustments
     for (k1 in seq_along(layer_sets)) {
+      has_updatek1 <- FALSE
+
       if (has_progress_bar) {
         utils::setTxtProgressBar(pb, k1)
       }
@@ -546,6 +550,8 @@ update_soil_profile <- function(
 
           ldset <- sort(c(ldset, lnew))
         }
+
+        has_updatek1 <- TRUE
       }
 
 
@@ -582,83 +588,94 @@ update_soil_profile <- function(
 
             ldset <- ldset[ldset != ldis]
           }
+
+          has_updatek1 <- TRUE
         }
       }
 
 
       #--- Update soil data
+      if (has_updatek1) {
+        # Determine how many layers are already available as columns
+        n_has <- Inf
 
-      # Determine how many layers are already available as columns
-      n_has <- Inf
+        for (k2 in seq_along(variables)) {
+          tmp <- grep(variables[k2], colnames(new_soil_data))
+          n_has <- min(n_has, length(tmp))
+        }
 
-      for (k2 in seq_along(variables)) {
-        tmp <- grep(variables[k2], colnames(new_soil_data))
-        n_has <- min(n_has, length(tmp))
-      }
+        # Determine how many layers need to be accommodated
+        nadd <- length(ldset) - n_has
 
-      # Determine how many layers need to be accommodated
-      nadd <- length(ldset) - n_has
+        if (nadd > 0) {
+          # Add columns for additional layers
+          ids <- ncol(new_soil_layers) + seq_len(nadd)
 
-      if (nadd > 0) {
-        # Add columns for additional layers
-        ids <- ncol(new_soil_layers) + seq_len(nadd)
-
-        new_soil_data <- cbind(
-          new_soil_data,
-          matrix(
-            data = NA,
-            nrow = nrow(new_soil_data),
-            ncol = length(variables) * nadd,
-            dimnames = list(
-              NULL,
-              paste0(
-                rep(variables, nadd),
-                "_L",
-                rep(ids, each = length(variables))
+          new_soil_data <- cbind(
+            new_soil_data,
+            matrix(
+              data = NA,
+              nrow = nrow(new_soil_data),
+              ncol = length(variables) * nadd,
+              dimnames = list(
+                NULL,
+                paste0(
+                  rep(variables, nadd),
+                  "_L",
+                  rep(ids, each = length(variables))
+                )
               )
             )
           )
-        )
-      }
+        }
 
-      lyrs <- seq_along(ldset)
+        lyrs <- seq_along(ldset)
 
-      for (k2 in seq_along(variables)) {
-        tmp <- grep(variables[k2], colnames(new_soil_data))
+        for (k2 in seq_along(variables)) {
+          tmp <- grep(variables[k2], colnames(new_soil_data))
 
-        new_soil_data[il_set, tmp[lyrs]] <- new_soil_data_by_var[[k2]][, lyrs]
-      }
+          new_soil_data[il_set, tmp[lyrs]] <- new_soil_data_by_var[[k2]][, lyrs]
+        }
 
 
-      #--- Update soil layer depths
-      nadd <- length(ldset) - ncol(new_soil_layers)
+        #--- Update soil layer depths
+        nadd <- length(ldset) - ncol(new_soil_layers)
 
-      if (nadd > 0) {
-        # Add columns for additional layers
-        ids <- ncol(new_soil_layers) + seq_len(nadd)
+        if (nadd > 0) {
+          # Add columns for additional layers
+          ids <- ncol(new_soil_layers) + seq_len(nadd)
 
-        new_soil_layers <- cbind(
-          new_soil_layers,
-          matrix(
-            data = NA,
-            nrow = nrow(new_soil_layers),
-            ncol = nadd,
-            dimnames = list(
-              NULL,
-              paste0("depth_L", ids)
+          new_soil_layers <- cbind(
+            new_soil_layers,
+            matrix(
+              data = NA,
+              nrow = nrow(new_soil_layers),
+              ncol = nadd,
+              dimnames = list(
+                NULL,
+                paste0("depth_L", ids)
+              )
             )
           )
+        }
+
+        new_soil_layers[il_set, lyrs] <- matrix(
+          data = ldset,
+          nrow = sum(il_set),
+          ncol = length(ldset),
+          byrow = TRUE
         )
+
+      } else {
+        # Nothing changed: copy previous values
+        ids <- seq_len(min(ncol(new_soil_data), ncol(soil_data)))
+        new_soil_data[il_set, ids] <- soil_data[il_set, ids]
+
+        ids <- seq_len(min(ncol(new_soil_layers), ncol(soil_layers)))
+        new_soil_layers[il_set, ids] <- soil_layers[il_set, ids]
       }
 
-      new_soil_layers[il_set, lyrs] <- matrix(
-        data = ldset,
-        nrow = sum(il_set),
-        ncol = length(ldset),
-        byrow = TRUE
-      )
-
-      has_updates <- TRUE
+      has_updates <- has_updates || has_updatek1
     }
 
     if (has_progress_bar) {
