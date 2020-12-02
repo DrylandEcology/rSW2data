@@ -509,3 +509,39 @@ calc_BareSoilEvapCoefs <- function(layers_depth, sand, clay,
   coeff_bs_evap <- round(t(apply(cbind(0, tmp_coeff), 1, diff)), 4)
   coeff_bs_evap / rowSums(coeff_bs_evap, na.rm = TRUE)
 }
+
+
+#' Crude initial estimate of soil temperatures throughout the soil profile
+#'
+#' @param layers_depth A numeric vector. Values describe
+#'   the lower soil layer depths in units of centimeters at which soil
+#'   temperatures are estimated.
+#' @param Tsoil_upper A numeric value. Initial soil temperature [C] at the
+#'   upper boundary, i.e., soil surface.
+#' @param Tsoil_const A numeric value. Initial soil temperature [C] at the
+#'   lower boundary, i.e., the soil depth at which soil temperature is mostly
+#'   constant throughout a year.
+#' @param depth_Tsoil_const A numeric value. The soil depth [cm] for which
+#'   \code{Tsoil_const} is valid.
+#'
+#' @return A numeric vector of length corresponding to \code{layers_depth}
+#'
+#' @examples
+#' init_soiltemperature(
+#'   layers_depth = c(5, 10, 20, 30, 40, 60, 80, 100),
+#'   # soil surface underneath a snow pack on Jan 1
+#'   Tsoil_upper = -1,
+#'   # mean annual air temperature is a reasonable estimate
+#'   Tsoil_const = 8,
+#'   depth_Tsoil_const = 990
+#' )
+#'
+#' @export
+init_soiltemperature <- function(layers_depth, Tsoil_upper, Tsoil_const,
+  depth_Tsoil_const = 990) {
+
+  sl <- c(0, depth_Tsoil_const) # nolint
+  st <- c(Tsoil_upper, Tsoil_const) #nolint
+
+  stats::predict(stats::lm(st ~ sl), data.frame(sl = layers_depth))
+}

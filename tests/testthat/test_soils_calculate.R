@@ -286,3 +286,44 @@ test_that("Bare-soil evaporation coefficients", {
   }
 
 })
+
+
+test_that("Initial soil temperature profile", {
+  layers_depth <- list(
+    5,
+    c(15, 50),
+    c(5, 10, 15, 30),
+    c(5, 10, 30, 50),
+    c(0, 5, 30, 50, 200, 900, 1000)
+  )
+
+  Tsoil_boundaries <- c(-5, 0, 10)
+
+
+  for (k1 in seq_along(layers_depth)) {
+    for (k2 in seq_along(Tsoil_boundaries)) {
+      for (k3 in seq_along(Tsoil_boundaries)) {
+        stemp <- init_soiltemperature(
+          layers_depth = layers_depth[[k1]],
+          Tsoil_upper = Tsoil_boundaries[k2],
+          Tsoil_const = Tsoil_boundaries[k3],
+          depth_Tsoil_const = 990
+        )
+
+        # Expectation: one value for each soil layer
+        expect_length(stemp, length(layers_depth[[k1]]))
+
+        # Expectation: monotonic increase or decrease with depth
+        tmp <- rSW2utils::check_monotonic_increase(
+          x = stemp,
+          increase = Tsoil_boundaries[k2] > Tsoil_boundaries[k3],
+          strictly = Tsoil_boundaries[k2] != Tsoil_boundaries[k3],
+          fail = TRUE
+        )
+
+        # expect_s3_class(tmp, "matrix") doesn't currently work
+        expect_true(inherits(tmp, "matrix"))
+      }
+    }
+  }
+})
