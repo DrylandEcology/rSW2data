@@ -278,6 +278,11 @@ check_texture_table <- function(
   vars_notzero = NULL
 ) {
 
+  tmp <- sapply(vars, function(var) sum(grepl(var, colnames(table_texture))))
+  if (any(tmp == 0) || any(diff(tmp) > 0)) {
+    stop("Requested `vars` not available in `table_texture`.")
+  }
+
   # Find missing values
   list_missing <- check_soillayer_condition(
     data = table_texture,
@@ -290,6 +295,15 @@ check_texture_table <- function(
 
   # Find zero values
   if (!is.null(vars_notzero)) {
+    tmp <- sapply(
+      vars_notzero,
+      function(var) sum(grepl(var, colnames(table_texture)))
+    )
+
+    if (any(tmp == 0) || any(diff(tmp) > 0)) {
+      stop("Requested `vars_notzero` not available in `table_texture`.")
+    }
+
     list_zeros <- check_soillayer_condition(
       data = table_texture,
       n_layers = n_layers,
