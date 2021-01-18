@@ -259,7 +259,7 @@ impute_soils <- function(
   if (verbose) {
     is_shallowest <- x[, var_horizon] == 1
     n_imped_vals <- sum(is.na(x[!is_shallowest, var_values]))
-    is_imped_hzs <- apply(x[!is_shallowest, var_values], 1, anyNA)
+    is_imped_hzs <- apply(x[!is_shallowest, var_values, drop = FALSE], 1, anyNA)
     n_imped_hzs <- sum(is_imped_hzs)
     n_imped_cokeys <- length(
       unique(x[!is_shallowest, var_site_id][is_imped_hzs])
