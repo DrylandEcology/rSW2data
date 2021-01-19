@@ -343,9 +343,11 @@ check_soillayer_condition <- function(data, n_layers, vars, fun) {
       MARGIN = 1,
       function(x) {
         n <- length(x) - 1
-        ids <- seq_len(min(n, x[1]))
         tmp <- rep(NA, n)
-        tmp[ids] <- fun(x[1 + ids])
+        if (is.finite(x[1])) {
+          ids <- seq_len(min(n, x[1]))
+          tmp[ids] <- fun(x[1 + ids])
+        }
         tmp
       }
     )
