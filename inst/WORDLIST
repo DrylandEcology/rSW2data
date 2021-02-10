@@ -20,6 +20,7 @@ gridcell
 hydrologic
 Hydrological
 Hydrologiques
+irradiance
 MERCHANTABILITY
 radians
 unmapped
@@ -42,7 +43,9 @@ github
 Lauenroth
 McBratney
 Minasny
+Monteith
 Nauman
+Odhiambo
 Palmquist
 Paruelo
 Rawls
@@ -60,3 +63,4 @@ travis
 Wickham
 Wythers
 Yimam
+Yoder
