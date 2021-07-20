@@ -4,7 +4,13 @@
 \alias{calc_BareSoilEvapCoefs}
 \title{Calculate potential bare-soil evaporation coefficients}
 \usage{
-calc_BareSoilEvapCoefs(layers_depth, sand, clay, depth_max_bs_evap_cm = 15)
+calc_BareSoilEvapCoefs(
+  layers_depth,
+  sand,
+  clay,
+  depth_max_bs_evap_cm = 15,
+  method_bad_soils = c("stop", "pass")
+)
 }
 \arguments{
 \item{layers_depth}{A numeric vector, matrix, or data.frame. Values describe
@@ -19,6 +25,13 @@ in units of mass-percentage / 100.}
 \item{depth_max_bs_evap_cm}{A numeric value. The maximal soil depth in
 centimeters from which bare-soil evaporation is potentially drawing
 moisture.}
+
+\item{method_bad_soils}{A character string. The method that determines how
+the function behaves if inputs represent "bad" soils, e.g., soil properties
+are missing or values out of range: \itemize{
+  \item "stop" will stop the function with an error;
+  \item "pass" will return \code{NA} for the sites with bad inputs.
+}}
 }
 \value{
 A numeric matrix with potential bare-soil evaporation coefficients
