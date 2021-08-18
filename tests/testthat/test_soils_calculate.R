@@ -1,5 +1,3 @@
-context("Soil calculations")
-
 
 test_that("deduce_complete_soil_texture", {
   x <- data.frame(

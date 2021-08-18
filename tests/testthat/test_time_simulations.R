@@ -1,4 +1,3 @@
-context("Time in the simulation world")
 
 #--- INPUTS
 input_sim_time <- list(

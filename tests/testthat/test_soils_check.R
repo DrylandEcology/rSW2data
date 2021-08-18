@@ -1,5 +1,3 @@
-context("Soil checks")
-
 
 test_that("check_depth_table", {
   soils <- matrix(
