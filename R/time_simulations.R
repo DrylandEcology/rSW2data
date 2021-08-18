@@ -36,44 +36,61 @@ getStartYear <- function(simstartyr, spinup_N = 1L) {
 #'   }
 #'
 #' @examples
-#' st1 <- setup_time_simulation_run(sim_time =
-#'   list(simstartyr = 1979, startyr = 1980, endyr = 2010))
-#' st2 <- setup_time_simulation_run(sim_time =
-#'   list(spinup_N = 1, startyr = 1980, endyr = 2010))
-#' st3 <- setup_time_simulation_run(sim_time =
-#'   list(simstartyr = 1979, spinup_N = 1, endyr = 2010))
-#'
+#' st1 <- setup_time_simulation_run(
+#'   sim_time =
+#'     list(simstartyr = 1979, startyr = 1980, endyr = 2010)
+#' )
+#' st2 <- setup_time_simulation_run(
+#'   sim_time =
+#'     list(spinup_N = 1, startyr = 1980, endyr = 2010)
+#' )
+#' st3 <- setup_time_simulation_run(
+#'   sim_time =
+#'     list(simstartyr = 1979, spinup_N = 1, endyr = 2010)
+#' )
 #' @export
-setup_time_simulation_run <- function(sim_time =
-    list(spinup_N = NULL, simstartyr = NA, startyr = NULL, endyr = NA)) {
-
+setup_time_simulation_run <- function(
+  sim_time = list(spinup_N = NULL, simstartyr = NA, startyr = NULL, endyr = NA)
+) {
   if (is.null(sim_time[["simstartyr"]])) {
     sim_time[["simstartyr"]] <- sim_time[["startyr"]] - sim_time[["spinup_N"]]
   } else if (is.null(sim_time[["startyr"]])) {
-    sim_time[["startyr"]] <- getStartYear(sim_time[["simstartyr"]],
-      sim_time[["spinup_N"]])
+    sim_time[["startyr"]] <- getStartYear(
+      sim_time[["simstartyr"]],
+      sim_time[["spinup_N"]]
+    )
   } else if (is.null(sim_time[["spinup_N"]])) {
     sim_time[["spinup_N"]] <- sim_time[["startyr"]] - sim_time[["simstartyr"]]
   }
 
-  stopifnot(sapply(c("spinup_N", "simstartyr", "startyr", "endyr"), function(x)
-    !is.null(sim_time[[x]]) && is.finite(sim_time[[x]])))
+  stopifnot(
+    sapply(
+      c("spinup_N", "simstartyr", "startyr", "endyr"),
+      function(x) {
+        !is.null(sim_time[[x]]) && is.finite(sim_time[[x]])
+      }
+    )
+  )
 
 
-  temp <- ISOdate(sim_time[["startyr"]], 1, 1, tz = "UTC")
-  discarddy <- as.numeric(temp - ISOdate(sim_time[["simstartyr"]], 1, 1,
-    tz = "UTC"))
+  tmp <- ISOdate(sim_time[["startyr"]], 1, 1, tz = "UTC")
+  discarddy <- as.numeric(
+    tmp - ISOdate(sim_time[["simstartyr"]], 1, 1, tz = "UTC")
+  )
 
   sim_time[["useyrs"]] <- sim_time[["startyr"]]:sim_time[["endyr"]]
 
   sim_time[["no.useyr"]] <- sim_time[["endyr"]] - sim_time[["startyr"]] + 1
   sim_time[["no.usemo"]] <- sim_time[["no.useyr"]] * 12
-  sim_time[["no.usedy"]] <- as.numeric(ISOdate(sim_time[["endyr"]], 12, 31,
-    tz = "UTC") - temp) + 1
+  sim_time[["no.usedy"]] <- 1 + as.numeric(
+    ISOdate(sim_time[["endyr"]], 12, 31, tz = "UTC") - tmp
+  )
 
-  sim_time[["index.useyr"]] <- sim_time[["spinup_N"]] +
+  sim_time[["index.useyr"]] <-
+    sim_time[["spinup_N"]] +
     seq_len(sim_time[["no.useyr"]])
-  sim_time[["index.usemo"]] <- sim_time[["spinup_N"]] * 12 +
+  sim_time[["index.usemo"]] <-
+    sim_time[["spinup_N"]] * 12 +
     seq_len(sim_time[["no.usemo"]])
   sim_time[["index.usedy"]] <- discarddy + seq_len(sim_time[["no.usedy"]])
 
@@ -103,21 +120,24 @@ setup_time_simulation_run <- function(sim_time =
 #' @return A named list.
 #'
 #' @export
-simTiming_ForEachUsedTimeUnit <- function(useyrs,
+simTiming_ForEachUsedTimeUnit <- function(
+  useyrs,
   sim_tscales = c("daily", "weekly", "monthly", "yearly"),
-  use_doy_range = FALSE,  doy_ranges = list(),
-  latitude = 90, account_NorthSouth = TRUE) {
-
+  use_doy_range = FALSE,
+  doy_ranges = list(),
+  latitude = 90,
+  account_NorthSouth = TRUE
+) {
   res <- list()
 
   no_useyr <- length(useyrs)
 
   if (any(sim_tscales == "daily")) {
-    temp <- as.POSIXlt(rSW2utils::days_in_years(min(useyrs), max(useyrs)))
+    tmp <- as.POSIXlt(rSW2utils::days_in_years(min(useyrs), max(useyrs)))
 
-    res$doy_ForEachUsedDay <- temp$yday + 1
-    res$month_ForEachUsedDay <- temp$mon + 1
-    res$year_ForEachUsedDay <- res$year_ForEachUsedDay_NSadj <- temp$year + 1900
+    res$doy_ForEachUsedDay <- tmp$yday + 1
+    res$month_ForEachUsedDay <- tmp$mon + 1
+    res$year_ForEachUsedDay <- res$year_ForEachUsedDay_NSadj <- tmp$year + 1900
 
     if (latitude < 0 && account_NorthSouth) {
       #- Shift doys
@@ -128,28 +148,33 @@ simTiming_ForEachUsedTimeUnit <- function(useyrs,
       # but, 1 Jan -> July 3/4): and instead of a day with doy = 366,
       # there are two with doy = 182
       dshift <- as.POSIXlt(ISOdate(useyrs, 6, 30, tz = "UTC"))$yday + 1
-      res$doy_ForEachUsedDay_NSadj <- unlist(lapply(seq_along(useyrs),
+      res$doy_ForEachUsedDay_NSadj <- unlist(lapply(
+        seq_along(useyrs),
         function(x) {
-          temp <- useyrs[x] == res$year_ForEachUsedDay
-          temp1 <- res$doy_ForEachUsedDay[temp]
-          temp2 <- 1:dshift[x]
-          c(temp1[-temp2], temp1[temp2])
-        }))
+          tmp <- useyrs[x] == res$year_ForEachUsedDay
+          tmp1 <- res$doy_ForEachUsedDay[tmp]
+          tmp2 <- 1:dshift[x]
+          c(tmp1[-tmp2], tmp1[tmp2])
+        }
+      ))
 
       #- Shift months
-      temp <- paste(res$year_ForEachUsedDay, res$doy_ForEachUsedDay_NSadj,
-        sep = "-")
-      res$month_ForEachUsedDay_NSadj <- strptime(temp, format = "%Y-%j")$mon + 1
+      tmp <- paste(
+        res$year_ForEachUsedDay,
+        res$doy_ForEachUsedDay_NSadj,
+        sep = "-"
+      )
+      res$month_ForEachUsedDay_NSadj <- strptime(tmp, format = "%Y-%j")$mon + 1
 
       #- Shift years
-      temp1 <- length(res$year_ForEachUsedDay)
+      tmp1 <- length(res$year_ForEachUsedDay)
       delta <- if (dshift[1] == 182) 2 else 3
-      temp2 <- dshift[1] + delta
+      tmp2 <- dshift[1] + delta
       res$year_ForEachUsedDay_NSadj <- c(
         # add previous calendar year for shifted days of first simulation year
-        rep(useyrs[1] - 1, times = temp2),
+        rep(useyrs[1] - 1, times = tmp2),
         # remove a corresponding number of days at end of simulation period
-        res$year_ForEachUsedDay[- ((temp1 - temp2 + 1):temp1)]
+        res$year_ForEachUsedDay[-((tmp1 - tmp2 + 1):tmp1)] # nolint
       )
       res$useyrs_NSadj <- unique(res$year_ForEachUsedDay_NSadj)
       res$no.useyr_NSadj <- length(res$useyrs_NSadj)
@@ -162,18 +187,18 @@ simTiming_ForEachUsedTimeUnit <- function(useyrs,
       res$no.useyr_NSadj <- no_useyr
     }
 
-    #Adjust years to water-years
+    # Adjust years to water-years
     # In North, Water year starting Oct 1 - Using DOY 274, which is Oct 1st in
     #   Leap Years, but Oct 2nd in typical years
     # In South, Water year starting April 1 - Using DOY 92, which is April 1st
     #   in Leap Years, but April 2nd in typical years
 
-    temp <- res$doy_ForEachUsedDay[1] == res$doy_ForEachUsedDay_NSadj[1]
-    FirstDOY_WaterYear <- if (temp) 274 else 92
+    tmp <- res$doy_ForEachUsedDay[1] == res$doy_ForEachUsedDay_NSadj[1]
+    FirstDOY_WaterYear <- if (tmp) 274 else 92
 
-    temp <- res$doy_ForEachUsedDay_NSadj > FirstDOY_WaterYear
+    tmp <- res$doy_ForEachUsedDay_NSadj > FirstDOY_WaterYear
     res$year_ForEachUsedDay_NSadj_WaterYearAdj <- # nolint
-      res$year_ForEachUsedDay_NSadj + ifelse(temp, 1, 0)
+      res$year_ForEachUsedDay_NSadj + ifelse(tmp, 1, 0)
 
     if (isTRUE(use_doy_range)) {
       # North or Southern hemisphere? eliminate unnecessary water years values
@@ -194,11 +219,11 @@ simTiming_ForEachUsedTimeUnit <- function(useyrs,
           # range or not
           res[[paste0("doy_NSadj_", names(doy_ranges[dr]), "_doyRange")]] <-
             if (doy_range_values[1] > doy_range_values[2]) {
-              temp <- c(doy_range_values[1]:366, 1:doy_range_values[2])
-              res$doy_ForEachUsedDay_NSadj %in% temp
+              tmp <- c(doy_range_values[1]:366, 1:doy_range_values[2])
+              res$doy_ForEachUsedDay_NSadj %in% tmp
             } else {
-              temp <- doy_range_values[1]:doy_range_values[2]
-              res$doy_ForEachUsedDay_NSadj %in% temp
+              tmp <- doy_range_values[1]:doy_range_values[2]
+              res$doy_ForEachUsedDay_NSadj %in% tmp
             }
         }
       }
@@ -251,31 +276,38 @@ simTiming_ForEachUsedTimeUnit <- function(useyrs,
 #'   \code{end_year} to updated last year no larger than \code{has_end_year} }
 #'
 #' @export
-update_requested_years <- function(start_year, end_year, has_start_year,
-  has_end_year, temp_call = NULL, verbose = FALSE) {
-
-  if (start_year < has_start_year) {
+update_requested_years <- function(
+  start_year,
+  end_year,
+  has_start_year,
+  has_end_year,
+  temp_call = NULL,
+  verbose = FALSE
+) {
+  start_year <- if (start_year < has_start_year) {
     if (verbose) {
-      print(paste0(shQuote(temp_call), ": covers years ", has_start_year, "-",
+      print(paste0(
+        shQuote(temp_call), ": covers years ", has_start_year, "-",
         has_end_year, "; requested start year ", start_year, " was changed to ",
-        has_start_year, "."))
+        has_start_year, "."
+      ))
     }
-    start_year <- as.integer(has_start_year)
-
+    as.integer(has_start_year)
   } else {
-    start_year <- as.integer(start_year)
+    as.integer(start_year)
   }
 
-  if (end_year > has_end_year) {
+  end_year <- if (end_year > has_end_year) {
     if (verbose) {
-      print(paste0(shQuote(temp_call), ": covers years ", has_start_year, "-",
+      print(paste0(
+        shQuote(temp_call), ": covers years ", has_start_year, "-",
         has_end_year, "; requested end year ", end_year, " was changed to ",
-        has_end_year, "."))
+        has_end_year, "."
+      ))
     }
-    end_year <- as.integer(has_end_year)
-
+    as.integer(has_end_year)
   } else {
-    end_year <- as.integer(end_year)
+    as.integer(end_year)
   }
 
 

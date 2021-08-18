@@ -130,14 +130,16 @@ test_that("impute_soils", {
 test_that("estimate_bulkdensity", {
   tol <- sqrt(.Machine$double.eps)
 
-  for (theta_sat in seq(0, 1, by = 0.1)) for (fragvol in seq(0, 1, by = 0.1)) {
-    x <- estimate_bulkdensity(
-      theta_saturated = theta_sat,
-      gravel_volume = fragvol
-    )
+  for (theta_sat in seq(0, 1, by = 0.1)) {
+    for (fragvol in seq(0, 1, by = 0.1)) {
+      x <- estimate_bulkdensity(
+        theta_saturated = theta_sat,
+        gravel_volume = fragvol
+      )
 
-    expect_gt(x, 0 - tol)
-    expect_lt(x, 2.65 + tol)
+      expect_gt(x, 0 - tol)
+      expect_lt(x, 2.65 + tol)
+    }
   }
 })
 
@@ -160,7 +162,8 @@ test_that("Bare-soil evaporation coefficients", {
     c(5, NA, 30, 50),
     c(0, 5, 30, 50),
     c(-5, 5, 30),
-    c(1.5, 10, 30))
+    c(1.5, 10, 30)
+  )
 
   sites_Nmax <- 5
   lyrs_N <- sapply(layers_depth, get_layerN)
@@ -175,7 +178,8 @@ test_that("Bare-soil evaporation coefficients", {
     rep(1, lyrs_Nmax),
     rep(0.75, lyrs_Nmax),
     rep(0.1, lyrs_Nmax),
-    matrix(0.5, nrow = sites_Nmax, ncol = lyrs_Nmax))
+    matrix(0.5, nrow = sites_Nmax, ncol = lyrs_Nmax)
+  )
 
   clay <- list(
     rep(NA, lyrs_Nmax),
@@ -184,7 +188,8 @@ test_that("Bare-soil evaporation coefficients", {
     rep(1, lyrs_Nmax),
     rep(0.75, lyrs_Nmax),
     rep(0.1, lyrs_Nmax),
-    matrix(0.2, nrow = sites_Nmax, ncol = lyrs_Nmax))
+    matrix(0.2, nrow = sites_Nmax, ncol = lyrs_Nmax)
+  )
 
   #--- TESTS
   k <- 1
@@ -229,7 +234,6 @@ test_that("Bare-soil evaporation coefficients", {
             calc_BareSoilEvapCoefs(ld, sp, cp, md),
             info = info
           )
-
         } else {
           bsevap_coeff <- calc_BareSoilEvapCoefs(ld, sp, cp, md)
 
@@ -254,8 +258,8 @@ test_that("Bare-soil evaporation coefficients", {
 
           # Monotonic decrease with soil depth
           if (Ns * Nl > 1) {
-            temp <- sweep(bsevap_coeff, 2, ld, FUN = "/")
-            deltas <- as.vector(apply(temp, 1, diff))
+            tmp <- sweep(bsevap_coeff, 2, ld, FUN = "/")
+            deltas <- as.vector(apply(tmp, 1, diff))
             expect_equal(deltas <= 0, rep(TRUE, Ns * Nl - 1L))
           }
 
@@ -284,7 +288,6 @@ test_that("Bare-soil evaporation coefficients", {
       }
     }
   }
-
 })
 
 

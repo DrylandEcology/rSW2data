@@ -26,16 +26,21 @@ test_that("Obtain time information", {
 
 
   # Describe simulation time
-  st1 <- setup_time_simulation_run(list(simstartyr = 1979, startyr = 1980,
-    endyr = 2010))
-  ns <- names(st1)
-  expect_equal(st1,
-    setup_time_simulation_run(sim_time =
-      list(spinup_N = 1, startyr = 1980, endyr = 2010))[ns]
+  st1 <- setup_time_simulation_run(
+    list(simstartyr = 1979, startyr = 1980, endyr = 2010)
   )
-  expect_equal(st1,
-    setup_time_simulation_run(sim_time =
-      list(simstartyr = 1979, spinup_N = 1, endyr = 2010))[ns]
+  ns <- names(st1)
+  expect_equal(
+    st1,
+    setup_time_simulation_run(
+      sim_time = list(spinup_N = 1, startyr = 1980, endyr = 2010)
+    )[ns]
+  )
+  expect_equal(
+    st1,
+    setup_time_simulation_run(
+      sim_time = list(simstartyr = 1979, spinup_N = 1, endyr = 2010)
+    )[ns]
   )
 
 
@@ -43,50 +48,70 @@ test_that("Obtain time information", {
   st2 <- list(N = list(), S = list())
 
   for (k in seq_along(input_sim_time)) {
-    expect_silent(st2[["N"]] <- simTiming_ForEachUsedTimeUnit(
-      useyrs = input_sim_time[[k]][["useyrs"]], latitude = 90))
+    expect_silent(
+      st2[["N"]] <- simTiming_ForEachUsedTimeUnit(
+        useyrs = input_sim_time[[k]][["useyrs"]],
+        latitude = 90
+      )
+    )
 
-    expect_silent(st2[["S"]] <- simTiming_ForEachUsedTimeUnit(
-      useyrs = input_sim_time[[k]][["useyrs"]], latitude = -90))
+    expect_silent(
+      st2[["S"]] <- simTiming_ForEachUsedTimeUnit(
+        useyrs = input_sim_time[[k]][["useyrs"]],
+        latitude = -90
+      )
+    )
 
 
     for (h in seq_along(st2)) {
       for (d in grep("ForEachUsedDay", names(st2[["N"]]), value = TRUE)) {
-        info <- paste("For test =", names(input_sim_time)[k], "/ d =",
-          shQuote(d), "/ hemisphere =", names(st2)[[h]])
+        info <- paste(
+          "For test =", names(input_sim_time)[k], "/ d =",
+          shQuote(d), "/ hemisphere =", names(st2)[[h]]
+        )
 
-        expect_equal(length(st2[[h]][[d]]), input_sim_time[[k]][["no.usedy"]],
-          info = info)
+        expect_equal(
+          length(st2[[h]][[d]]),
+          input_sim_time[[k]][["no.usedy"]],
+          info = info
+        )
       }
 
       for (d in grep("ForEachUsedMonth", names(st2[["N"]]), value = TRUE)) {
-        info <- paste("For test =", names(input_sim_time)[k], "/ d =",
-          shQuote(d), "/ hemisphere =", names(st2)[[h]])
+        info <- paste(
+          "For test =", names(input_sim_time)[k], "/ d =",
+          shQuote(d), "/ hemisphere =", names(st2)[[h]]
+        )
 
-        expect_equal(length(st2[[h]][[d]]), input_sim_time[[k]][["no.usemo"]],
-          info = info)
+        expect_equal(
+          length(st2[[h]][[d]]),
+          input_sim_time[[k]][["no.usemo"]],
+          info = info
+        )
       }
     }
   }
-
 })
 
 
 test_that("Check years", {
-  expect_silent(x <- update_requested_years(2000, 2010, 1950, 2010,
-    verbose = FALSE))
+  expect_silent(
+    x <- update_requested_years(2000, 2010, 1950, 2010, verbose = FALSE)
+  )
   expect_equal(x[["start_year"]], 2000L)
   expect_equal(x[["end_year"]], 2010L)
 
-  expect_output(x <- update_requested_years(1940, 2010, 1950, 2010,
-    verbose = TRUE),
-    regexp = "requested start year")
+  expect_output(
+    x <- update_requested_years(1940, 2010, 1950, 2010, verbose = TRUE),
+    regexp = "requested start year"
+  )
   expect_equal(x[["start_year"]], 1950L)
   expect_equal(x[["end_year"]], 2010L)
 
-  expect_output(x <- update_requested_years(2000, 2020, 1950, 2010,
-    verbose = TRUE),
-    regexp = "requested end year")
+  expect_output(
+    x <- update_requested_years(2000, 2020, 1950, 2010, verbose = TRUE),
+    regexp = "requested end year"
+  )
   expect_equal(x[["start_year"]], 2000L)
   expect_equal(x[["end_year"]], 2010L)
 })
