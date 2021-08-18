@@ -12,6 +12,7 @@
 ^\.appveyor_clear_cache\.txt$
 ^codecov\.yml$
 ^\.lintr$
+^\.github$
 
 # RStudio stuff
 ^.*\.Rproj$

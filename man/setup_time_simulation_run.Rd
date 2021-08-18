@@ -33,11 +33,16 @@ A named list, i.e., the updated version of \code{sim_time} with
 Describe the time of a simulation run
 }
 \examples{
-st1 <- setup_time_simulation_run(sim_time =
-  list(simstartyr = 1979, startyr = 1980, endyr = 2010))
-st2 <- setup_time_simulation_run(sim_time =
-  list(spinup_N = 1, startyr = 1980, endyr = 2010))
-st3 <- setup_time_simulation_run(sim_time =
-  list(simstartyr = 1979, spinup_N = 1, endyr = 2010))
-
+st1 <- setup_time_simulation_run(
+  sim_time =
+    list(simstartyr = 1979, startyr = 1980, endyr = 2010)
+)
+st2 <- setup_time_simulation_run(
+  sim_time =
+    list(spinup_N = 1, startyr = 1980, endyr = 2010)
+)
+st3 <- setup_time_simulation_run(
+  sim_time =
+    list(simstartyr = 1979, spinup_N = 1, endyr = 2010)
+)
 }

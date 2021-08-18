@@ -1,6 +1,6 @@
 #--- Code style
 
-#nolint start
+# nolint start
 
 # Problem: `R CMD check` doesn't allow hidden files
 # including the lintr settings; thus, we exclude `.lintr` via `.Rbuildignore`.
@@ -16,19 +16,19 @@
 #   - `devtools::check(env_vars = c(NOT_CRAN = "true"))`
 #   - `R CMD build . && NOT_CRAN="true" R CMD check *.tar.gz`
 
-#nolint end
+# nolint end
 
 if (
   requireNamespace(
     "lintr",
     versionCheck = list(op = ">=", version = "2.0")
   ) &&
-  # skip_on_cran
-  isTRUE(tolower(Sys.getenv("NOT_CRAN")) %in% c(1, "yes", "true")) &&
-  # skip_on_appveyor
-  !isTRUE(tolower(Sys.getenv("APPVEYOR")) %in% c(1, "yes", "true")) &&
-  # skip_on_covr
-  !isTRUE(tolower(Sys.getenv("R_COVR")) %in% c(1, "yes", "true"))
+    # skip_on_cran
+    isTRUE(tolower(Sys.getenv("NOT_CRAN")) %in% c(1, "yes", "true")) &&
+    # skip_on_appveyor
+    !isTRUE(tolower(Sys.getenv("APPVEYOR")) %in% c(1, "yes", "true")) &&
+    # skip_on_covr
+    !isTRUE(tolower(Sys.getenv("R_COVR")) %in% c(1, "yes", "true"))
 ) {
 
   # Locate package source directory
@@ -101,14 +101,14 @@ if (
       cyclocomp_linter = NULL,
       #------ NON-DEFAULT LINTERS
       #--- Not activated non-default linters:
-      #lintr::extraction_operator_linter,
-      #lintr::implicit_integer_linter,
-      #lintr::todo_comment_linter,
+      # lintr::extraction_operator_linter,
+      # lintr::implicit_integer_linter,
+      # lintr::todo_comment_linter,
       # see https://github.com/jimhester/lintr/issues/468
-      #nonportable_path_linter = lintr::nonportable_path_linter(lax = TRUE),
+      # nonportable_path_linter = lintr::nonportable_path_linter(lax = TRUE),
       #--- Activated non-default linters:
       absolute_path_linter = lintr::absolute_path_linter(lax = TRUE),
-     infix_spaces_linter = lintr::infix_spaces_linter,
+      infix_spaces_linter = lintr::infix_spaces_linter,
       T_and_F_symbol_linter = lintr::T_and_F_symbol_linter,
       semicolon_terminator_linter = lintr::semicolon_terminator_linter(
         semicolon = c("compound", "trailing")

@@ -41,11 +41,11 @@ adjustLayer_byImp <- function(depths, imp_depth, sdepths) {
   if (any(imp_depth < depths[1])) {
     depths <- imp_depth
     if (length(sdepths) >= 2) {
-      temp <- findInterval(imp_depth, sdepths)
-      if (temp > 1) {
-        depths <- c(sdepths[temp - 1], imp_depth)
+      tmp <- findInterval(imp_depth, sdepths)
+      depths <- if (tmp > 1) {
+        c(sdepths[tmp - 1], imp_depth)
       } else {
-        depths <- c(imp_depth, sdepths[temp + 1])
+        c(imp_depth, sdepths[tmp + 1])
       }
     }
   } else if (any(imp_depth < depths[2])) {

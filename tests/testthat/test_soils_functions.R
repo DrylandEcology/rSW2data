@@ -1,7 +1,4 @@
-context("Manipulate soil layers")
 
-
-#---TESTS
 test_that("add_soil_layer", {
   soil_layers <- c(8, 20, 150)
   N <- length(soil_layers)
@@ -274,9 +271,10 @@ test_that("update_soil_profile", {
           )))
         )
 
-        expect_equivalent(
+        expect_equal(
           na.exclude(new_soils[["soil_layers"]][k3, ]),
-          expected_soillayers
+          expected_soillayers,
+          ignore_attr = TRUE
         )
       }
 

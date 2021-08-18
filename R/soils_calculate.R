@@ -297,7 +297,9 @@ impute_soils <- function(
       "for n = ", n_imped_vals, " values",
       if (n_missing > 0) {
         paste0("; remaining missing values n = ", n_missing)
-      } else "."
+      } else {
+        "."
+      }
     )
   }
 
@@ -511,13 +513,13 @@ calc_BareSoilEvapCoefs <- function(
 
   sand_mean <-
     rowSums(lyrs_max_bs_evap * sand[ids_used, , drop = FALSE], na.rm = TRUE) /
-    ldepth_max_bs_evap
+      ldepth_max_bs_evap
   clay_mean <-
     rowSums(lyrs_max_bs_evap * clay[ids_used, , drop = FALSE], na.rm = TRUE) /
-    ldepth_max_bs_evap
+      ldepth_max_bs_evap
 
   # equation from re-analysis
-  tmp_depth <- 4.1984 + 0.6695 * sand_mean ^ 2 + 168.7603 * clay_mean ^ 2
+  tmp_depth <- 4.1984 + 0.6695 * sand_mean^2 + 168.7603 * clay_mean^2
 
   depth_bs_evap <- pmin(
     pmax(tmp_depth, depth_min_bs_evap, na.rm = TRUE),
@@ -543,7 +545,7 @@ calc_BareSoilEvapCoefs <- function(
   ))
 
   # function made up to match previous cumulative distributions
-  tmp_coeff <- 1 - exp(- 5 * layers_depth_used / depth_bs_evap)
+  tmp_coeff <- 1 - exp(-5 * layers_depth_used / depth_bs_evap)
   tmp_coeff[!lyrs_bs_evap0 | is.na(tmp_coeff)] <- 1
   coeff_bs_evap <- round(t(apply(cbind(0, tmp_coeff), 1, diff)), 4)
   res <- coeff_bs_evap / rowSums(coeff_bs_evap, na.rm = TRUE)

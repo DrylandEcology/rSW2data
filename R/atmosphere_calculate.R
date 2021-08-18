@@ -11,7 +11,7 @@
 #'
 #' @export
 vp0 <- function(x) {
-  0.6108 * exp(17.27 * x / (x + 273.3))  # eq. 5 of Yoder et al. 2005
+  0.6108 * exp(17.27 * x / (x + 273.3)) # eq. 5 of Yoder et al. 2005
 }
 
 
