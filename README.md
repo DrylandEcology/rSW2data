@@ -1,7 +1,10 @@
+# rSW2data: Input Data Preparation for SOILWAT2 and STEPWAT2 Simulation Experiments
 
+<!-- badges: start -->
 | Unix | Windows | Release | License | Coverage |
 | :---- | :---- | :---- | :---- | :---- |
 [ ![Travis build status][1]][2] | [![Appveyor build status][3]][4] | [ ![github release][5]][6] | [![license][7]][8] | [![codecov status][9]][10] |
+<!-- badges: end -->
 
 [1]: https://travis-ci.org/DrylandEcology/rSW2data.svg?branch=master
 [2]: https://travis-ci.org/DrylandEcology/rSW2data
@@ -26,15 +29,13 @@
 [pull request]: https://github.com/DrylandEcology/rSW2data/pulls
 [guidelines]: https://github.com/DrylandEcology/workflow_guidelines
 [semantic versioning]: https://semver.org/
-[testthat]: https://github.com/hadley/testthat
-[roxygen2 formatting]: https://cran.r-project.org/web/packages/roxygen2/vignettes/formatting.html
-[r-pkgs man]: http://r-pkgs.had.co.nz/man.html
-[r-pkgs tests]: http://r-pkgs.had.co.nz/tests.html
+[testthat]: https://github.com/r-lib/testthat
+[roxygen2]: https://cran.r-project.org/package=roxygen2
+[r-pkgs man]: https://r-pkgs.org/man.html
+[r-pkgs tests]: https://r-pkgs.org/tests.html
 
 
 <br>
-
-# rSW2data
 
 Collection of functions to prepare and calculate
 input data for [rSOILWAT2][], [rSFSW2][], and [rSFSTEP2][]
@@ -110,7 +111,7 @@ project you agree to abide by its terms.
 #### Code documentation
   * This is based on the section
     ['Object documentation' of the book 'R packages' by Wickham][r-pkgs man]
-  * Use [roxygen2 formatting][] to write inline code documentation of functions
+  * Use [roxygen2][] to write inline code documentation of functions
   * Use regular R-style comments to additionally document code
   * Update help pages and the `NAMESPACE` file with the command
     `devtools::document()`

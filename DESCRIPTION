@@ -1,6 +1,6 @@
 Package: rSW2data
-Title: Input data preparation for SOILWAT2 and STEPWAT2 simulation experiments
-Version: 0.0.0.9000
+Title: Input Data Preparation for SOILWAT2 and STEPWAT2 Simulation Experiments
+Version: 0.1.0
 Authors@R: c(
   person(
     "Daniel", "Schlaepfer",
@@ -13,7 +13,7 @@ Depends:
     R (>= 3.5.0),
     methods
 Imports:
-    rSW2utils
+    rSW2utils (>= 0.1.0)
 Suggests:
     testthat,
     spelling,
