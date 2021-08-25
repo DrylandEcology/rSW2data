@@ -116,13 +116,19 @@ test_that("impute_soils", {
     var_horizon = "layer_no"
   ))
 
-  expect_equal(which(is.na(res1[, "coarse"])), c(1, 8))
+  # NAs in shallowest layer are not imputed even if requested
+  expect_equal(which(is.na(res1[, "coarse"])), which(x1[, "layer_no"] == 1))
+  # NAs of requested variables replaced with values in deeper layers
   expect_true(!all(is.na(res1[, "sand_pct"])))
+  # Values of unrequested variables are not changed
   expect_equal(
     x1[, c("clay_pct", "silt_pct")],
     res1[, c("clay_pct", "silt_pct")]
   )
+  # Order of data by site and layer is not changed
+  expect_equal(res1[, c("id", "layer_no")], x1[, c("id", "layer_no")])
 
+  # verbose argument produces messages
   expect_message(suppressWarnings(impute_soils(
     x1,
     var_values = c("coarse", "sand_pct"),
@@ -142,6 +148,9 @@ test_that("impute_soils", {
     var_horizon = "layer_no"
   ))
 
+  # Order of data by site and layer is not changed
+  expect_equal(res2[, c("id", "layer_no")], x2[, c("id", "layer_no")])
+  # Imputation is independent of order of data
   expect_equal(
     res2[order(res2[, "id"], res2[, "layer_no"]), ],
     res1
@@ -159,6 +168,9 @@ test_that("impute_soils", {
     var_horizon = "layer_no"
   ))
 
+  # Order of data by site and layer is not changed
+  expect_equal(res3[, c("id", "layer_no")], x3[, c("id", "layer_no")])
+  # Imputation is independent of order of data
   expect_equal(
     res3[order(res3[, "id"], res3[, "layer_no"]), ],
     res1

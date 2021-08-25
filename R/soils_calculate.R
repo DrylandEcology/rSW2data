@@ -266,6 +266,13 @@ impute_soils <- function(
     )
   }
 
+
+  # --- Sort by site then by horizon for imputation
+  ids_order <- order(x[, var_site_id], x[, var_horizon])
+  x <- x[ids_order, , drop = FALSE]
+
+
+  # --- Impute
   tmp <- by(
     data = x[, var_values, drop = FALSE],
     INDICES = x[, var_site_id],
@@ -288,6 +295,7 @@ impute_soils <- function(
   ids <- match(unique(x[, var_site_id]), names(tmp))
   x[, var_values] <- do.call(rbind, tmp[ids])
 
+
   if (verbose) {
     n_missing <- sum(is.na(x[, var_values]))
 
@@ -303,7 +311,8 @@ impute_soils <- function(
     )
   }
 
-  x
+  # --- Re-create input order of data and output
+  x[match(seq_along(ids_order), ids_order), , drop = FALSE]
 }
 
 
