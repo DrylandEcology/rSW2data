@@ -95,8 +95,8 @@ test_that("set_missing_soils_to_value", {
 
 
 test_that("impute_soils", {
-  x <- data.frame(
-    id = rep(1, 7),
+  # --- Example: sorted by site and by soil layer
+  tmp <- data.frame(
     layer_no = 1:7,
     coarse = c(NA, 10, 50, NA, 0, 15, NA),
     sand_pct = c(45.7, NA, 68.5, NA, 0, 2, NA),
@@ -104,24 +104,65 @@ test_that("impute_soils", {
     silt_pct = c(41.8, NA, 21.5, 15, NA, 1, 15)
   )
 
-  res <- suppressWarnings(impute_soils(
-    x,
+  x1 <- rbind(
+    cbind(id = rep(1, 7), tmp),
+    cbind(id = rep(2, 7), tmp)
+  )
+
+  res1 <- suppressWarnings(impute_soils(
+    x1,
     var_values = c("coarse", "sand_pct"),
     var_site_id = "id",
     var_horizon = "layer_no"
   ))
 
-  expect_equal(which(is.na(res[, "coarse"])), 1)
-  expect_true(!all(is.na(res[, "sand_pct"])))
-  expect_equal(x[, c("clay_pct", "silt_pct")], res[, c("clay_pct", "silt_pct")])
+  expect_equal(which(is.na(res1[, "coarse"])), c(1, 8))
+  expect_true(!all(is.na(res1[, "sand_pct"])))
+  expect_equal(
+    x1[, c("clay_pct", "silt_pct")],
+    res1[, c("clay_pct", "silt_pct")]
+  )
 
   expect_message(suppressWarnings(impute_soils(
-    x,
+    x1,
     var_values = c("coarse", "sand_pct"),
     var_site_id = "id",
     var_horizon = "layer_no",
     verbose = TRUE
   )))
+
+
+  # --- Example: sorted by soil layer and by site
+  x2 <- x1[order(x1[, "layer_no"], x1[, "id"]), ]
+
+  res2 <- suppressWarnings(impute_soils(
+    x2,
+    var_values = c("coarse", "sand_pct"),
+    var_site_id = "id",
+    var_horizon = "layer_no"
+  ))
+
+  expect_equal(
+    res2[order(res2[, "id"], res2[, "layer_no"]), ],
+    res1
+  )
+
+
+  # --- Example: unsorted rows
+  set.seed(444)
+  x3 <- x1[sample(nrow(x1)), ]
+
+  res3 <- suppressWarnings(impute_soils(
+    x3,
+    var_values = c("coarse", "sand_pct"),
+    var_site_id = "id",
+    var_horizon = "layer_no"
+  ))
+
+  expect_equal(
+    res3[order(res3[, "id"], res3[, "layer_no"]), ],
+    res1
+  )
 })
 
 
