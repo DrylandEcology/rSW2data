@@ -10,7 +10,7 @@
 [6]: https://github.com/DrylandEcology/rSW2data/releases
 [7]: https://img.shields.io/github/license/DrylandEcology/rSW2data.svg
 [8]: https://www.gnu.org/licenses/gpl.html
-[9]: https://codecov.io/gh/DrylandEcology/rSW2data/branch/master/graph/badge.svg
+[9]: https://codecov.io/gh/DrylandEcology/rSW2data/branch/main/graph/badge.svg
 [10]: https://codecov.io/gh/DrylandEcology/rSW2data
 [11]: https://img.shields.io/github/downloads/DrylandEcology/rSW2data/total.svg
 [SOILWAT2]: https://github.com/DrylandEcology/SOILWAT2
