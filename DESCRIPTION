@@ -1,6 +1,6 @@
 Package: rSW2data
 Title: Input Data Preparation for SOILWAT2 and STEPWAT2 Simulation Experiments
-Version: 0.1.2-9000
+Version: 0.1.2
 Authors@R: c(
   person(
     "Daniel", "Schlaepfer",
