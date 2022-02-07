@@ -6,8 +6,7 @@
 \alias{rSW2data-package}
 \title{Package \pkg{rSW2data}: summary information}
 \description{
-Collection of functions to prepare and calculate input data for
-  rSOILWAT2, rSFSW2, and rSFSTEP2 simulation experiments.
+Collection of functions to prepare and calculate input data for rSOILWAT2, rSFSW2, and rSFSTEP2 simulation experiments.
 }
 \seealso{
 Useful links:

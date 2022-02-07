@@ -197,187 +197,379 @@ test_that("estimate_bulkdensity", {
 
 
 test_that("Bare-soil evaporation coefficients", {
-  #--- INPUTS
-  print_debug <- FALSE
-  vars <- c("ld", "sp", "cp", "md")
-  get_siteN <- function(x) if (is.null(dim(x))) 1L else dim(x)[1]
-  get_layerN <- function(x) if (is.null(dim(x))) length(x) else dim(x)[2]
+  check_bsevap_coeffs <- function(bsevap_coeff, ld, md, Ns, Nl, info = NULL) {
+    # Coeffs of each site sum to one
+    expect_equal(apply(bsevap_coeff, 1, sum), rep(1, Ns), info = info)
 
-  layers_depth <- list(
-    5,
-    c(5, 10, 15, 30),
-    c(5, 10, 30, 50),
-    c(15, 50),
-    50,
-    200,
-    c(5, NA, 30, 50),
-    c(0, 5, 30, 50),
-    c(-5, 5, 30),
-    c(1.5, 10, 30)
-  )
+    # Coeffs are between 0 and 1
+    expect_equal(
+      as.vector(bsevap_coeff <= 1), rep(TRUE, Ns * Nl),
+      info = info
+    )
 
-  sites_Nmax <- 5
-  lyrs_N <- sapply(layers_depth, get_layerN)
-  lyrs_Nmax <- max(lyrs_N)
+    expect_equal(
+      as.vector(bsevap_coeff >= 0), rep(TRUE, Ns * Nl),
+      info = info
+    )
 
-  depth_max_bs_evap_cm <- c(-5, 0, 1.5, 5, 15, 200, NA)
+    # If max is shallower than first layer, then first layer is 1
+    if (ld[1] >= md) {
+      expect_equal(bsevap_coeff[, 1], rep(1, Ns))
+    }
 
-  sand <- list(
-    rep(NA, lyrs_Nmax),
-    rep(0, lyrs_Nmax),
-    rep(0, lyrs_Nmax - 1),
-    rep(1, lyrs_Nmax),
-    rep(0.75, lyrs_Nmax),
-    rep(0.1, lyrs_Nmax),
-    matrix(0.5, nrow = sites_Nmax, ncol = lyrs_Nmax)
-  )
-
-  clay <- list(
-    rep(NA, lyrs_Nmax),
-    rep(0, lyrs_Nmax),
-    rep(0, lyrs_Nmax - 1),
-    rep(1, lyrs_Nmax),
-    rep(0.75, lyrs_Nmax),
-    rep(0.1, lyrs_Nmax),
-    matrix(0.2, nrow = sites_Nmax, ncol = lyrs_Nmax)
-  )
-
-  #--- TESTS
-  k <- 1
-
-  for (k1 in seq_along(layers_depth)) {
-    for (k2 in seq_along(sand)) {
-      for (k3 in seq_along(depth_max_bs_evap_cm)) {
-
-        ld <- layers_depth[[k1]]
-        sp <- sand[[k2]][min(get_siteN(sand[[k2]]), seq_len(lyrs_N[k1]))]
-        cp <- clay[[k2]][min(get_siteN(clay[[k2]]), seq_len(lyrs_N[k1]))]
-        md <- depth_max_bs_evap_cm[k3]
-        Ns <- get_siteN(sp)
-        Nl <- get_layerN(sp)
-
-        info <- paste0(
-          "Test #", k, ": ", k1, k2, k3, ": input = ",
-          paste(
-            lapply(
-              vars,
-              function(x) {
-                tmp <- get(x)
-                paste(x, "=", paste(tmp, collapse = "-"))
-              }
-            ),
-            collapse = " / "
-          )
-        )
-
-        if (
-          anyNA(ld) || anyNA(sp) || anyNA(cp) || anyNA(md) ||
-          Nl < length(ld) || Ns != get_siteN(cp) || Nl != get_layerN(cp) ||
-          any(md < 0) || any(ld <= 0) || any(sp < 0) || any(cp < 0) ||
-          any(sp > 1) || any(cp > 1) || any(sp + cp > 1)
-        ) {
-
-          if (print_debug) {
-            print(paste0(k1, k2, k3, ": ", info, ": expect error"))
-          }
-
-          expect_error(
-            calc_BareSoilEvapCoefs(ld, sp, cp, md),
-            info = info
-          )
-        } else {
-          bsevap_coeff <- calc_BareSoilEvapCoefs(ld, sp, cp, md)
-
-          # Coeffs of each site sum to one
-          expect_equal(apply(bsevap_coeff, 1, sum), rep(1, Ns), info = info)
-
-          # Coeffs are between 0 and 1
-          expect_equal(
-            as.vector(bsevap_coeff <= 1), rep(TRUE, Ns * Nl),
-            info = info
-          )
-
-          expect_equal(
-            as.vector(bsevap_coeff >= 0), rep(TRUE, Ns * Nl),
-            info = info
-          )
-
-          # If max is shallower than first layer, then first layer is 1
-          if (ld[1] >= md) {
-            expect_equal(bsevap_coeff[, 1], rep(1, Ns))
-          }
-
-          # Monotonic decrease with soil depth
-          if (Ns * Nl > 1) {
-            tmp <- sweep(bsevap_coeff, 2, ld, FUN = "/")
-            deltas <- as.vector(apply(tmp, 1, diff))
-            expect_equal(deltas <= 0, rep(TRUE, Ns * Nl - 1L))
-          }
-
-          # No bare-soil evaporation from depths greater than
-          # 'depth_max_bs_evap_cm'
-          lmax <- max(1, min(Nl, findInterval(md, c(0, ld))))
-          expect_equal(
-            apply(
-              X = bsevap_coeff,
-              MARGIN = 1,
-              FUN = function(x) sum(x > 0)
-            ) <= rep(lmax, Ns),
-            rep(TRUE, Ns),
-            info = info
-          )
-
-          if (print_debug) {
-            print(paste0(
-              k1, k2, k3, ": ", info,
-              ": bsevap = ", paste(bsevap_coeff, collapse = ":")
-            ))
-          }
-        }
-
-        k <- k + 1
+    # Monotonic decrease with soil depth
+    tmpn <- min(length(ld), ncol(bsevap_coeff))
+    if (tmpn > 1) {
+      tmpids <- seq_len(tmpn)
+      tmp <- sweep(
+        bsevap_coeff[, tmpids, drop = FALSE],
+        MARGIN = 2,
+        STATS = ld[tmpids],
+        FUN = "/"
+      )
+      deltas <- apply(tmp, 1, diff)
+      deltas <- if (is.null(dim(deltas))) {
+        matrix(deltas, ncol = 1)
+      } else {
+        t(deltas)
       }
+      expect_equal(
+        deltas <= 0,
+        matrix(TRUE, nrow = Ns, ncol = tmpn - 1)
+      )
+    }
+
+    # No bare-soil evaporation from depths greater than
+    # 'depth_max_bs_evap_cm'
+    lmax <- max(1, min(Nl, findInterval(md, c(0, ld))))
+    expect_equal(
+      apply(
+        X = bsevap_coeff,
+        MARGIN = 1,
+        FUN = function(x) sum(x > 0)
+      ) <= rep(lmax, Ns),
+      rep(TRUE, Ns),
+      info = info
+    )
+
+    invisible(TRUE)
+  }
+
+
+  #--- INPUTS ------
+  N_sites <- 3
+  ids_sets <- list(c(1, 3), 2)
+
+  tldv1 <- c(5, 10, 15, 30)
+  tldv2 <- c(5, 15, 20, 50, 100)
+  tldvs <- list(tldv1, tldv2)
+  tmd <- tldv1[3] # depth_max_bs_evap_cm
+
+  tldm <- matrix(NA, nrow = N_sites, ncol = max(lengths(tldvs)))
+  for (k1 in seq_along(ids_sets)) {
+    tldm[ids_sets[[k1]], seq_along(tldvs[[k1]])] <- matrix(
+      tldvs[[k1]],
+      nrow = length(ids_sets[[k1]]),
+      ncol = length(tldvs[[k1]]),
+      byrow = TRUE
+    )
+  }
+
+  tspm <- matrix(0.5, nrow = N_sites, ncol = 5)
+  tcpm <- matrix(0.2, nrow = N_sites, ncol = 5)
+
+  ids_bad_sites <- N_sites
+  tspmna <- tspm
+  tspmna[ids_bad_sites, 1] <- NA
+
+
+  #--- Expect errors ------
+
+  #--- * Error if md is non-finite ------
+  expect_error(
+    calc_BareSoilEvapCoefs(tldv1, tspm, tcpm, depth_max_bs_evap_cm = "bad")
+  )
+
+  #--- * Error if md is negative ------
+  expect_error(
+    calc_BareSoilEvapCoefs(tldv1, tspm, tcpm, depth_max_bs_evap_cm = -5)
+  )
+
+  #--- * Error if missing values in `layers_depth` within md ------
+  expect_error(
+    calc_BareSoilEvapCoefs(c(5, NA, 15, 30), tspm, tcpm, tmd)
+  )
+
+  #--- * Error if sand and clay have different dimensions ------
+  expect_error(
+    calc_BareSoilEvapCoefs(tldv1, tspm, tcpm[, seq_len(ncol(tcpm) - 1)], tmd)
+  )
+
+  #--- * Error if sand or clay has different number of sites than layers ------
+  expect_error(
+    calc_BareSoilEvapCoefs(matrix(tldv1, nrow = 1), tspm, tcpm, tmd)
+  )
+
+  #--- * Error if sand and clay have fewer layers than needed to meet md ------
+  expect_error(
+    calc_BareSoilEvapCoefs(tldv1, tspm[, 1:2], tcpm[, 1:2], tmd)
+  )
+
+  #--- * Error if some sites have missing values and stop on bad sites ------
+  expect_error(
+    calc_BareSoilEvapCoefs(tldv1, tspmna, tcpm, tmd, method_bad_soils = "stop")
+  )
+
+
+
+  #--- Expect output ------
+
+  #--- * No missing values in `layers_depth`; deeper than md ------
+  check_bsevap_coeffs(
+    calc_BareSoilEvapCoefs(tldv1, tspm, tcpm, tmd),
+    ld = tldv1,
+    md = tmd,
+    Ns = nrow(tspm),
+    Nl = ncol(tspm)
+  )
+
+  bsevap_coeff <- calc_BareSoilEvapCoefs(tldm, tspm, tcpm, tmd)
+
+  for (k1 in seq_along(ids_sets)) {
+    check_bsevap_coeffs(
+      bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
+      ld = tldm[ids_sets[[k1]][1], seq_len(length(tldvs[[k1]]))],
+      md = tmd,
+      Ns = length(ids_sets[[k1]]),
+      Nl = ncol(tspm)
+    )
+  }
+
+
+  #--- * No missing values in `layers_depth`; shallower than md ------
+  check_bsevap_coeffs(
+    calc_BareSoilEvapCoefs(
+      tldv1, tspm, tcpm,
+      depth_max_bs_evap_cm = max(tldv1)
+    ),
+    ld = tldv1,
+    md = max(tldv1),
+    Ns = nrow(tspm),
+    Nl = ncol(tspm)
+  )
+
+  bsevap_coeff <- calc_BareSoilEvapCoefs(
+    tldm, tspm, tcpm,
+    depth_max_bs_evap_cm = 30
+  )
+
+  for (k1 in seq_along(ids_sets)) {
+    check_bsevap_coeffs(
+      bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
+      ld = tldm[ids_sets[[k1]][1], seq_len(length(tldvs[[k1]]))],
+      md = 30,
+      Ns = length(ids_sets[[k1]]),
+      Nl = ncol(tspm)
+    )
+  }
+
+
+  #--- * Missing values in `layers_depth` but deeper than md ------
+  check_bsevap_coeffs(
+    calc_BareSoilEvapCoefs(c(tldv1, NA), tspm, tcpm, tmd),
+    ld = tldv1,
+    md = tmd,
+    Ns = nrow(tspm),
+    Nl = ncol(tspm)
+  )
+
+  bsevap_coeff <- calc_BareSoilEvapCoefs(cbind(tldm, NA), tspm, tcpm, tmd)
+
+  for (k1 in seq_along(ids_sets)) {
+    check_bsevap_coeffs(
+      bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
+      ld = tldm[ids_sets[[k1]][1], seq_len(length(tldvs[[k1]]))],
+      md = tmd,
+      Ns = length(ids_sets[[k1]]),
+      Nl = ncol(tspm)
+    )
+  }
+
+
+  #--- * Arguments sand and clay are site x layer matrices ------
+  check_bsevap_coeffs(
+    calc_BareSoilEvapCoefs(tldv1, tspm, tcpm, tmd),
+    ld = tldv1,
+    md = tmd,
+    Ns = nrow(tspm),
+    Nl = ncol(tspm)
+  )
+
+  bsevap_coeff <- calc_BareSoilEvapCoefs(tldm, tspm, tcpm, tmd)
+
+  for (k1 in seq_along(ids_sets)) {
+    check_bsevap_coeffs(
+      bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
+      ld = tldm[ids_sets[[k1]][1], seq_len(length(tldvs[[k1]]))],
+      md = tmd,
+      Ns = length(ids_sets[[k1]]),
+      Nl = ncol(tspm)
+    )
+  }
+
+
+  #--- * Arguments sand and clay are vectors of layers ------
+  check_bsevap_coeffs(
+    calc_BareSoilEvapCoefs(tldv1, tspm[1, ], tcpm[1, ], tmd),
+    ld = tldv1,
+    md = tmd,
+    Ns = 1,
+    Nl = ncol(tspm)
+  )
+
+
+  #--- * Arguments sand and clay are site x 1 layer matrices ------
+  check_bsevap_coeffs(
+    calc_BareSoilEvapCoefs(
+      tldv1,
+      tspm[, 1, drop = FALSE],
+      tcpm[, 1, drop = FALSE],
+      tldv1[1]
+    ),
+    ld = tldv1,
+    md = tldv1[1],
+    Ns = nrow(tspm),
+    Nl = 1
+  )
+
+  bsevap_coeff <- calc_BareSoilEvapCoefs(
+    tldm,
+    tspm[, 1, drop = FALSE],
+    tcpm[, 1, drop = FALSE],
+    min(tldm[1, ], na.rm = TRUE)
+  )
+
+  for (k1 in seq_along(ids_sets)) {
+    check_bsevap_coeffs(
+      bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
+      ld = tldm[ids_sets[[k1]][1], seq_len(length(tldvs[[k1]]))],
+      md = min(tldm[1, ], na.rm = TRUE),
+      Ns = length(ids_sets[[k1]]),
+      Nl = 1
+    )
+  }
+
+
+  #--- * Argument layer has only one layer ------
+  check_bsevap_coeffs(
+    calc_BareSoilEvapCoefs(tldv1[1], tspm, tcpm, tldv1[1]),
+    ld = tldv1[1],
+    md = tldv1[1],
+    Ns = nrow(tspm),
+    Nl = ncol(tspm)
+  )
+
+  bsevap_coeff <- calc_BareSoilEvapCoefs(
+    tldm[, 1, drop = FALSE],
+    tspm, tcpm,
+    min(tldm[, 1])
+  )
+
+  for (k1 in seq_along(ids_sets)) {
+    check_bsevap_coeffs(
+      bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
+      ld = tldm[ids_sets[[k1]][1], 1, drop = FALSE],
+      md = min(tldm[, 1]),
+      Ns = length(ids_sets[[k1]]),
+      Nl = ncol(tspm)
+    )
+  }
+
+
+  #--- * Some sites have missing values but pass bad sites through ------
+  bsevap_coeff <- calc_BareSoilEvapCoefs(
+    tldv1, tspmna, tcpm, tmd,
+    method_bad_soils = "pass"
+  )
+
+  expect_true(all(is.na(bsevap_coeff[ids_bad_sites, ])))
+
+  check_bsevap_coeffs(
+    bsevap_coeff[-ids_bad_sites, , drop = FALSE],
+    ld = tldv1,
+    md = tmd,
+    Ns = nrow(tspmna) - length(ids_bad_sites),
+    Nl = ncol(tspmna)
+  )
+
+
+  bsevap_coeff <- calc_BareSoilEvapCoefs(
+    tldm, tspmna, tcpm, tmd,
+    method_bad_soils = "pass"
+  )
+
+  expect_true(all(is.na(bsevap_coeff[ids_bad_sites, ])))
+
+  for (k1 in seq_along(ids_sets)) {
+    ids <- setdiff(ids_sets[[k1]], ids_bad_sites)
+    if (length(ids) > 0) {
+      check_bsevap_coeffs(
+        bsevap_coeff[ids, , drop = FALSE],
+        ld = tldm[ids[1], seq_len(length(tldvs[[k1]]))],
+        md = tmd,
+        Ns = length(ids),
+        Nl = ncol(tspm)
+      )
     }
   }
-})
 
 
-test_that("Initial soil temperature profile", {
-  layers_depth <- list(
-    5,
-    c(15, 50),
-    c(5, 10, 15, 30),
-    c(5, 10, 30, 50),
-    c(0, 5, 30, 50, 200, 900, 1000)
+  #--- * One site and it has missing values but pass bad sites through ------
+  bsevap_coeff <- calc_BareSoilEvapCoefs(
+    tldv1,
+    tspmna[ids_bad_sites, ],
+    tcpm[ids_bad_sites, ],
+    tmd,
+    method_bad_soils = "pass"
   )
 
-  Tsoil_boundaries <- c(-5, 0, 10)
+  expect_true(all(is.na(bsevap_coeff)))
 
 
-  for (k1 in seq_along(layers_depth)) {
-    for (k2 in seq_along(Tsoil_boundaries)) {
-      for (k3 in seq_along(Tsoil_boundaries)) {
-        stemp <- init_soiltemperature(
-          layers_depth = layers_depth[[k1]],
-          Tsoil_upper = Tsoil_boundaries[k2],
-          Tsoil_const = Tsoil_boundaries[k3],
-          depth_Tsoil_const = 990
-        )
+  bsevap_coeff <- calc_BareSoilEvapCoefs(
+    tldm[ids_bad_sites, , drop = FALSE],
+    tspmna[ids_bad_sites, ],
+    tcpm[ids_bad_sites, ],
+    tmd,
+    method_bad_soils = "pass"
+  )
 
-        # Expectation: one value for each soil layer
-        expect_length(stemp, length(layers_depth[[k1]]))
+  expect_true(all(is.na(bsevap_coeff)))
 
-        # Expectation: monotonic increase or decrease with depth
-        tmp <- rSW2utils::check_monotonic_increase(
-          x = stemp,
-          increase = Tsoil_boundaries[k2] > Tsoil_boundaries[k3],
-          strictly = Tsoil_boundaries[k2] != Tsoil_boundaries[k3],
-          fail = TRUE
-        )
 
-        # expect_s3_class(tmp, "matrix") doesn't currently work
-        expect_true(inherits(tmp, "matrix"))
-      }
-    }
+  #--- * md is shallower than the shallowest layer ------
+  check_bsevap_coeffs(
+    calc_BareSoilEvapCoefs(tldv1, tspm, tcpm, tldv1[1] - 1),
+    ld = tldv1[1] - 1,
+    md = tmd,
+    Ns = nrow(tspm),
+    Nl = ncol(tspm)
+  )
+
+
+  bsevap_coeff <- calc_BareSoilEvapCoefs(
+    tldm, tspm, tcpm,
+    min(tldm, na.rm = TRUE) - 1
+  )
+
+  for (k1 in seq_along(ids_sets)) {
+    check_bsevap_coeffs(
+      bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
+      ld = tldm[ids_sets[[k1]][1], seq_len(length(tldvs[[k1]]))],
+      md = min(tldm, na.rm = TRUE) - 1,
+      Ns = length(ids_sets[[k1]]),
+      Nl = ncol(tspm)
+    )
   }
+
 })
