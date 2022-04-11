@@ -1,3 +1,5 @@
+# rSW2data v0.1.3-9000
+
 # rSW2data v0.1.2
 * `calc_calc_BareSoilEvapCoefs()` can now work with soils with
   different soil depth profiles; correctly works in edge cases including
