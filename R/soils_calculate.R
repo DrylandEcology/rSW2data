@@ -374,7 +374,7 @@ estimate_bulkdensity <- function(theta_saturated, gravel_volume) {
 #'   converted to 1-row matrices. If \code{layers_depth} is a vector, then it is
 #'   converted to a matrix with as many sites/rows as \code{sand} and
 #'   \code{clay} have. That is the code assumes identical soil layer depths for
-#'   each site. All soil input arguments must have a the same number of sites
+#'   each site. All soil input arguments must have the same number of sites
 #'   and of soil layers, i.e., identical matrix dimensions.
 #' @section Warning: Influence of gravel is not accounted for.
 #'
@@ -488,10 +488,21 @@ calc_BareSoilEvapCoefs <- function(
       ncol(ls_ld)
     } else {
       # No missing values allowed in layers less deep than depth_max_bs_evap_cm
-      which(cumsum(diff(c(0, ls_ld[1, ]))) >= depth_max_bs_evap_cm)[1]
+      tmp <- cumsum(diff(c(0, ls_ld[1, ]))) >= depth_max_bs_evap_cm
+      if (any(tmp, na.rm = TRUE)) {
+        which(tmp)[1]
+      } else {
+        # all layers less deep than depth_max_bs_evap_cm
+        # -> left set of non-NA
+        # but fail if NA mixed in with real depth values
+        tmp2 <- rle(!is.na(ls_ld[1, ]))
+        if (isTRUE(tmp2[["values"]][1]) && sum(tmp2[["values"]]) == 1) {
+          tmp2[["lengths"]][1]
+        }
+      }
     }
 
-    stopifnot(!anyNA(n_slyrs), n_slyrs > 0)
+    stopifnot(!is.null(n_slyrs), !anyNA(n_slyrs), n_slyrs > 0)
     ids_slyrs <- seq_len(n_slyrs)
 
 

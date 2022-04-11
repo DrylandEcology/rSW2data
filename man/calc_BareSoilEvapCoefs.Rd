@@ -48,7 +48,7 @@ Default of \code{depth_max_bs_evap} = 15 cm from Torres et al. 2010.
   converted to 1-row matrices. If \code{layers_depth} is a vector, then it is
   converted to a matrix with as many sites/rows as \code{sand} and
   \code{clay} have. That is the code assumes identical soil layer depths for
-  each site. All soil input arguments must have a the same number of sites
+  each site. All soil input arguments must have the same number of sites
   and of soil layers, i.e., identical matrix dimensions.
 }
 
