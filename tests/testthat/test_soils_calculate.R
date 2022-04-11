@@ -218,7 +218,7 @@ test_that("Bare-soil evaporation coefficients", {
     }
 
     # Monotonic decrease with soil depth
-    tmpn <- min(length(ld), ncol(bsevap_coeff))
+    tmpn <- min(sum(!is.na(ld)), ncol(bsevap_coeff))
     if (tmpn > 1) {
       tmpids <- seq_len(tmpn)
       tmp <- sweep(
@@ -241,7 +241,7 @@ test_that("Bare-soil evaporation coefficients", {
 
     # No bare-soil evaporation from depths greater than
     # 'depth_max_bs_evap_cm'
-    lmax <- max(1, min(Nl, findInterval(md, c(0, ld))))
+    lmax <- max(1, min(Nl, findInterval(md, c(0, na.exclude(ld)))))
     expect_equal(
       apply(
         X = bsevap_coeff,
@@ -298,6 +298,11 @@ test_that("Bare-soil evaporation coefficients", {
   #--- * Error if missing values in `layers_depth` within md ------
   expect_error(
     calc_BareSoilEvapCoefs(c(5, NA, 15, 30), tspm, tcpm, tmd)
+  )
+
+  # but no error if all missing values pooled at depth
+  expect_silent(
+    calc_BareSoilEvapCoefs(c(5, 10, NA, NA), tspm, tcpm, tmd)
   )
 
   #--- * Error if sand and clay have different dimensions ------
@@ -567,6 +572,40 @@ test_that("Bare-soil evaporation coefficients", {
       bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
       ld = tldm[ids_sets[[k1]][1], seq_len(length(tldvs[[k1]]))],
       md = min(tldm, na.rm = TRUE) - 1,
+      Ns = length(ids_sets[[k1]]),
+      Nl = ncol(tspm)
+    )
+  }
+
+
+  #--- * md is deeper than the deepest layer that is available ------
+  mdd <- max(tldv1[1:2]) + 1
+
+  bsevap_coeff <- calc_BareSoilEvapCoefs(
+    c(tldv1[1:2], NA), tspm, tcpm,
+    depth_max_bs_evap_cm = mdd,
+    method_bad_soils = "pass"
+  )
+
+  check_bsevap_coeffs(
+    bsevap_coeff,
+    ld = c(tldv1[1:2], NA),
+    md = mdd,
+    Ns = nrow(tspm),
+    Nl = ncol(tspm)
+  )
+
+  mdd <- max(tldm, na.rm = TRUE) + 1
+  bsevap_coeff <- calc_BareSoilEvapCoefs(
+    tldm, tspm, tcpm,
+    depth_max_bs_evap_cm = mdd
+  )
+
+  for (k1 in seq_along(ids_sets)) {
+    check_bsevap_coeffs(
+      bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
+      ld = tldm[ids_sets[[k1]][1], seq_len(length(tldvs[[k1]]))],
+      md = mdd,
       Ns = length(ids_sets[[k1]]),
       Nl = ncol(tspm)
     )
