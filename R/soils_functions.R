@@ -717,3 +717,193 @@ identify_soillayers <- function(depths, sdepth) {
     it[1]
   }
 }
+
+#' Reshape soil properties between wide format and (semi-)long format
+#'
+#' @param x_wide A data frame in wide format (see details).
+#' @param x_long A data frame in long or semi-long format (see details).
+#' @param type_to A character string. Determines if output format
+#'  is long or semi-long (see details).
+#' @param type_from A character string. Describes if format of `x_long` is
+#'   long or semi-long.
+#' @param id_site A character string. Column name of `x` that
+#'   contains unique site names.
+#' @param id_soillayer A character string. Name of the column that will
+#'   be created to contain soil layer numbers.
+#' @param sep_soillayer A character string. See details.
+#' @param soilproperties A character vector. Names of soil properties;
+#'   see details.
+#' @param id_values A character string. Name of the column in long format
+#'   that contains values of soil properties.
+#' @param id_property A character string. Name of the column in long format
+#'   that contains names of soil properties.
+#'
+#' @return
+#'  * [reshape_soilproperties_to_long()] returns
+#'    * a data frame in long format if `type_to` is `"long"`
+#'    * a data frame in semi-long format if `type_to` is `"long_by_properties"`.
+#'  * [reshape_soilproperties_to_long()] returns a data frame in wide format.
+#'
+#' @seealso [stats::reshape()]
+#'
+#' @section Details:
+#' Formats of soil-property data frames
+#'   * `"wide"`
+#'     * each row represents a unique site
+#'       (encoded by column `id_site`)
+#'     * besides `id_site`, columns represent soil properties
+#'       at different soil layers and column names follow the pattern
+#'       `<soilproperties><sep_soillayer><soil layer id>`, e.g.,
+#'       `db_L1`, `fsand_L1`, `fclay_L1`, `fcoarse_L1`, `db_L2`, `fsand_L2`, ...
+#'   * `"semi-long"` (or `"long_by_properties"`)
+#'     * each row represents a unique combination of sites and soil layers
+#'       (encoded by columns `id_site` and `id_soillayer`)
+#'     * columns are `id_site`, `id_soillayer`, `soilproperties`, e.g.,
+#'       `site`, `soillayer`, `db`, `fsand`, `fclay`, `fcoarse`
+#'   * `"long"`
+#'     * each row represents a unique observation, e.g.,
+#'       `SiteA`, 1, `fsand`, 0.70
+#'     * columns are `id_site`, `id_soillayer`, `id_property`, `id_values`
+#'
+#'
+#' @examples
+#' x_wide <- data.frame(
+#'   location = c("SiteA", "SiteB"),
+#'   db_L1 = c(1.5, 1.6),
+#'   fsand_L1 = c(0.7, 0.2),
+#'   fclay_L1 = c(0.1, 0.2),
+#'   db_L2 = c(1.6, 1.7),
+#'   fsand_L2 = c(0.75, 0.3),
+#'   fclay_L2 = c(0.1, 0.15)
+#' )
+#'
+#' x_long <- reshape_soilproperties_to_long(
+#'   x_wide,
+#'   type_to = "long",
+#'   id_site = "location",
+#'   soilproperties = c("db", "fsand", "fclay")
+#' )
+#' x_wide_from_long <- reshape_soilproperties_to_wide(
+#'   x_long,
+#'   type_from = "long",
+#'   id_site = "location",
+#'   soilproperties = c("db", "fsand", "fclay")
+#' )
+#' all.equal(x_wide_from_long, x_wide, check.attributes = FALSE)
+#'
+#' x_semilong <- reshape_soilproperties_to_long(
+#'   x_wide,
+#'   type_to = "long_by_properties",
+#'   id_site = "location",
+#'   soilproperties = c("db", "fsand", "fclay")
+#' )
+#' x_wide_from_semilong <- reshape_soilproperties_to_wide(
+#'   x_semilong,
+#'   type_from = "long_by_properties",
+#'   id_site = "location",
+#'   soilproperties = c("db", "fsand", "fclay")
+#' )
+#' all.equal(x_wide_from_semilong, x_wide, check.attributes = FALSE)
+#'
+#' @md
+#' @name reshape_soilproperties
+NULL
+
+#' @rdname reshape_soilproperties
+#'
+#' @export
+reshape_soilproperties_to_long <- function(
+  x_wide,
+  type_to = c("long", "long_by_properties"),
+  id_site = "site",
+  id_soillayer = "soillayer",
+  sep_soillayer = "_L",
+  soilproperties = c("db", "fsand", "fclay", "fcoarse"),
+  id_values = "value",
+  id_property = "variable"
+) {
+  type_to <- match.arg(type_to)
+
+  cns <- colnames(x_wide)
+  ids <- lapply(
+    soilproperties,
+    function(x) grep(x, cns, value = TRUE)
+  )
+  v_names <- if (is.null(names(ids))) {
+    soilproperties
+  } else {
+    names(ids)
+  }
+
+  var_drop <- cns[!(cns %in% c(id_site, unlist(ids)))]
+
+  tmp <- stats::reshape(
+    data = x_wide,
+    direction = "long",
+    idvar = id_site,
+    drop = if (length(var_drop) > 0) var_drop,
+    varying = ids,
+    v.names = v_names,
+    sep = sep_soillayer,
+    timevar = id_soillayer
+  )
+
+  res <- switch(
+    EXPR = type_to,
+    long_by_properties = tmp,
+    long = stats::reshape(
+      data = tmp,
+      direction = "long",
+      idvar = c(id_site, id_soillayer),
+      varying = list(v_names),
+      v.names = id_values,
+      sep = "",
+      timevar = id_property,
+      times = v_names
+    )
+  )
+
+  rownames(res) <- NULL
+  res
+}
+
+
+#' @rdname reshape_soilproperties
+#'
+#' @export
+reshape_soilproperties_to_wide <- function(
+  x_long,
+  type_from = c("long", "long_by_properties"),
+  id_site = "site",
+  id_soillayer = "soillayer",
+  sep_soillayer = "_L",
+  soilproperties = c("db", "fsand", "fclay", "fcoarse"),
+  id_values = "value",
+  id_property = "variable"
+) {
+  type_from <- match.arg(type_from)
+
+  res <- if (type_from == "long") {
+    stats::reshape(
+      data = x_long[, c(id_site, id_soillayer, id_values, id_property)],
+      direction = "wide",
+      idvar = c(id_site, id_soillayer),
+      timevar = id_property,
+      v.names = id_values,
+      varying = list(soilproperties)
+    )
+  } else if (type_from == "long_by_properties") {
+    x_long
+  }
+
+  res <- stats::reshape(
+    data = res[, c(id_site, id_soillayer, soilproperties)],
+    direction = "wide",
+    idvar = id_site,
+    timevar = id_soillayer,
+    sep = sep_soillayer
+  )
+  rownames(res) <- NULL
+
+  res
+}

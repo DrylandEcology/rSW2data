@@ -1,4 +1,7 @@
 # rSW2data v0.1.4-9000
+* New `reshape_soilproperties_to_long()` and `reshape_soilproperties_to_wide()`
+  reshape data frames containing soil properties between wide and (semi-) long
+  formats.
 
 # rSW2data v0.1.3
 * `calc_calc_BareSoilEvapCoefs()` now works correctly for shallow soil profiles

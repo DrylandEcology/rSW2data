@@ -293,3 +293,72 @@ test_that("update_soil_profile", {
     }
   }
 })
+
+
+test_that("reshape_soilproperties", {
+  var_soilproperties <- c("db", "fsand", "fclay")
+
+  x_wide <- data.frame(
+    location = c("SiteA", "SiteB"),
+    db_L1 = c(1.5, 1.6),
+    fsand_L1 = c(0.7, 0.2),
+    fclay_L1 = c(0.1, 0.2),
+    db_L2 = c(1.6, 1.7),
+    fsand_L2 = c(0.75, 0.3),
+    fclay_L2 = c(0.1, 0.15)
+  )
+
+
+  for (k in seq_len(nrow(x_wide))) {
+    x_wide_used <- x_wide[seq_len(k), , drop = FALSE]
+
+    #--- Check reshaping from wide to long
+    x_long <- reshape_soilproperties_to_long(
+      x_wide_used,
+      type_to = "long",
+      id_site = "location",
+      soilproperties = var_soilproperties
+    )
+    expect_s3_class(x_long, "data.frame")
+    expect_named(x_long, c("location", "soillayer", "variable", "value"))
+
+
+    #--- Check inversion from long back to wide
+    x_wide_from_long <- reshape_soilproperties_to_wide(
+      x_long,
+      type_from = "long",
+      id_site = "location",
+      soilproperties = var_soilproperties
+    )
+    expect_equal(
+      x_wide_from_long,
+      x_wide_used,
+      ignore_attr = "reshapeWide"
+    )
+
+
+    #--- Check reshaping from wide to semi-long
+    x_semilong <- reshape_soilproperties_to_long(
+      x_wide_used,
+      type_to = "long_by_properties",
+      id_site = "location",
+      soilproperties = var_soilproperties
+    )
+    expect_s3_class(x_semilong, "data.frame")
+    expect_named(x_semilong, c("location", "soillayer", var_soilproperties))
+
+
+    #--- Check inversion from semi-long back to wide
+    x_wide_from_semilong <- reshape_soilproperties_to_wide(
+      x_semilong,
+      type_from = "long_by_properties",
+      id_site = "location",
+      soilproperties = var_soilproperties
+    )
+    expect_equal(
+      x_wide_from_semilong,
+      x_wide_used,
+      ignore_attr = "reshapeWide"
+    )
+  }
+})
