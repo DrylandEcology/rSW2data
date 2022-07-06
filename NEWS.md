@@ -1,3 +1,5 @@
+# rSW2data v0.1.4-9000
+
 # rSW2data v0.1.3
 * `calc_calc_BareSoilEvapCoefs()` now works correctly for shallow soil profiles
   even if inputs include missing depth
