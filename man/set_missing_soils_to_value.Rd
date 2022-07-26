@@ -9,7 +9,7 @@ set_missing_soils_to_value(
   variable,
   value = 0,
   where = c("none", "all", "at_surface"),
-  horizon = colnames(x)[1],
+  horizon = colnames(x)[[1]],
   verbose = FALSE
 )
 }

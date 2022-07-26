@@ -53,36 +53,47 @@ setup_time_simulation_run <- function(
   sim_time = list(spinup_N = NULL, simstartyr = NA, startyr = NULL, endyr = NA)
 ) {
   if (is.null(sim_time[["simstartyr"]])) {
+    sim_time[["startyr"]] <- as.integer(sim_time[["startyr"]])
+    sim_time[["spinup_N"]] <- as.integer(sim_time[["spinup_N"]])
     sim_time[["simstartyr"]] <- sim_time[["startyr"]] - sim_time[["spinup_N"]]
+
   } else if (is.null(sim_time[["startyr"]])) {
+    sim_time[["simstartyr"]] <- as.integer(sim_time[["simstartyr"]])
+    sim_time[["spinup_N"]] <- as.integer(sim_time[["spinup_N"]])
     sim_time[["startyr"]] <- getStartYear(
       sim_time[["simstartyr"]],
       sim_time[["spinup_N"]]
     )
+
   } else if (is.null(sim_time[["spinup_N"]])) {
+    sim_time[["startyr"]] <- as.integer(sim_time[["startyr"]])
+    sim_time[["simstartyr"]] <- as.integer(sim_time[["simstartyr"]])
     sim_time[["spinup_N"]] <- sim_time[["startyr"]] - sim_time[["simstartyr"]]
   }
 
+  sim_time[["endyr"]] <- as.integer(sim_time[["endyr"]])
+
   stopifnot(
-    sapply(
+    vapply(
       c("spinup_N", "simstartyr", "startyr", "endyr"),
       function(x) {
         !is.null(sim_time[[x]]) && is.finite(sim_time[[x]])
-      }
+      },
+      FUN.VALUE = NA
     )
   )
 
 
   tmp <- ISOdate(sim_time[["startyr"]], 1, 1, tz = "UTC")
-  discarddy <- as.numeric(
+  discarddy <- as.integer(
     tmp - ISOdate(sim_time[["simstartyr"]], 1, 1, tz = "UTC")
   )
 
   sim_time[["useyrs"]] <- sim_time[["startyr"]]:sim_time[["endyr"]]
 
-  sim_time[["no.useyr"]] <- sim_time[["endyr"]] - sim_time[["startyr"]] + 1
-  sim_time[["no.usemo"]] <- sim_time[["no.useyr"]] * 12
-  sim_time[["no.usedy"]] <- 1 + as.numeric(
+  sim_time[["no.useyr"]] <- sim_time[["endyr"]] - sim_time[["startyr"]] + 1L
+  sim_time[["no.usemo"]] <- sim_time[["no.useyr"]] * 12L
+  sim_time[["no.usedy"]] <- 1L + as.integer(
     ISOdate(sim_time[["endyr"]], 12, 31, tz = "UTC") - tmp
   )
 
@@ -90,7 +101,7 @@ setup_time_simulation_run <- function(
     sim_time[["spinup_N"]] +
     seq_len(sim_time[["no.useyr"]])
   sim_time[["index.usemo"]] <-
-    sim_time[["spinup_N"]] * 12 +
+    sim_time[["spinup_N"]] * 12L +
     seq_len(sim_time[["no.usemo"]])
   sim_time[["index.usedy"]] <- discarddy + seq_len(sim_time[["no.usedy"]])
 
@@ -135,9 +146,12 @@ simTiming_ForEachUsedTimeUnit <- function(
   if (any(sim_tscales == "daily")) {
     tmp <- as.POSIXlt(rSW2utils::days_in_years(min(useyrs), max(useyrs)))
 
-    res$doy_ForEachUsedDay <- tmp$yday + 1
-    res$month_ForEachUsedDay <- tmp$mon + 1
-    res$year_ForEachUsedDay <- res$year_ForEachUsedDay_NSadj <- tmp$year + 1900
+    # nolint start: extraction_operator_linter.
+    res[["doy_ForEachUsedDay"]] <- tmp$yday + 1
+    res[["month_ForEachUsedDay"]] <- tmp$mon + 1
+    res[["year_ForEachUsedDay"]] <-
+      res[["year_ForEachUsedDay_NSadj"]] <- tmp$year + 1900
+    # nolint end
 
     if (latitude < 0 && account_NorthSouth) {
       #- Shift doys
@@ -147,12 +161,16 @@ simTiming_ForEachUsedTimeUnit <- function(
       # end of year (i.e., 1 July -> 1 Jan & 30 June -> 31 Dec;
       # but, 1 Jan -> July 3/4): and instead of a day with doy = 366,
       # there are two with doy = 182
+
+      # nolint start: extraction_operator_linter.
       dshift <- as.POSIXlt(ISOdate(useyrs, 6, 30, tz = "UTC"))$yday + 1
-      res$doy_ForEachUsedDay_NSadj <- unlist(lapply(
+      # nolint end
+
+      res[["doy_ForEachUsedDay_NSadj"]] <- unlist(lapply(
         seq_along(useyrs),
         function(x) {
-          tmp <- useyrs[x] == res$year_ForEachUsedDay
-          tmp1 <- res$doy_ForEachUsedDay[tmp]
+          tmp <- useyrs[x] == res[["year_ForEachUsedDay"]]
+          tmp1 <- res[["doy_ForEachUsedDay"]][tmp]
           tmp2 <- 1:dshift[x]
           c(tmp1[-tmp2], tmp1[tmp2])
         }
@@ -160,31 +178,33 @@ simTiming_ForEachUsedTimeUnit <- function(
 
       #- Shift months
       tmp <- paste(
-        res$year_ForEachUsedDay,
-        res$doy_ForEachUsedDay_NSadj,
+        res[["year_ForEachUsedDay"]],
+        res[["doy_ForEachUsedDay_NSadj"]],
         sep = "-"
       )
-      res$month_ForEachUsedDay_NSadj <- strptime(tmp, format = "%Y-%j")$mon + 1
+      res[["month_ForEachUsedDay_NSadj"]] <- 1 + strptime(
+        tmp, format = "%Y-%j"
+      )$mon # nolint: extraction_operator_linter.
 
       #- Shift years
-      tmp1 <- length(res$year_ForEachUsedDay)
-      delta <- if (dshift[1] == 182) 2 else 3
-      tmp2 <- dshift[1] + delta
-      res$year_ForEachUsedDay_NSadj <- c(
+      tmp1 <- length(res[["year_ForEachUsedDay"]])
+      delta <- if (dshift[[1]] == 182) 2 else 3
+      tmp2 <- dshift[[1]] + delta
+      res[["year_ForEachUsedDay_NSadj"]] <- c(
         # add previous calendar year for shifted days of first simulation year
-        rep(useyrs[1] - 1, times = tmp2),
+        rep(useyrs[[1]] - 1, times = tmp2),
         # remove a corresponding number of days at end of simulation period
-        res$year_ForEachUsedDay[-((tmp1 - tmp2 + 1):tmp1)] # nolint
+        res[["year_ForEachUsedDay"]][-((tmp1 - tmp2 + 1):tmp1)]
       )
-      res$useyrs_NSadj <- unique(res$year_ForEachUsedDay_NSadj)
-      res$no.useyr_NSadj <- length(res$useyrs_NSadj)
+      res[["useyrs_NSadj"]] <- unique(res[["year_ForEachUsedDay_NSadj"]])
+      res[["no.useyr_NSadj"]] <- length(res[["useyrs_NSadj"]])
 
     } else {
-      res$doy_ForEachUsedDay_NSadj <- res$doy_ForEachUsedDay
-      res$month_ForEachUsedDay_NSadj <- res$month_ForEachUsedDay
-      res$year_ForEachUsedDay_NSadj <- res$year_ForEachUsedDay
-      res$useyrs_NSadj <- useyrs
-      res$no.useyr_NSadj <- no_useyr
+      res[["doy_ForEachUsedDay_NSadj"]] <- res[["doy_ForEachUsedDay"]]
+      res[["month_ForEachUsedDay_NSadj"]] <- res[["month_ForEachUsedDay"]]
+      res[["year_ForEachUsedDay_NSadj"]] <- res[["year_ForEachUsedDay"]]
+      res[["useyrs_NSadj"]] <- useyrs
+      res[["no.useyr_NSadj"]] <- no_useyr
     }
 
     # Adjust years to water-years
@@ -193,20 +213,21 @@ simTiming_ForEachUsedTimeUnit <- function(
     # In South, Water year starting April 1 - Using DOY 92, which is April 1st
     #   in Leap Years, but April 2nd in typical years
 
-    tmp <- res$doy_ForEachUsedDay[1] == res$doy_ForEachUsedDay_NSadj[1]
+    tmp <-
+      res[["doy_ForEachUsedDay"]][[1]] == res[["doy_ForEachUsedDay_NSadj"]][[1]]
     FirstDOY_WaterYear <- if (tmp) 274 else 92
 
-    tmp <- res$doy_ForEachUsedDay_NSadj > FirstDOY_WaterYear
-    res$year_ForEachUsedDay_NSadj_WaterYearAdj <- # nolint
-      res$year_ForEachUsedDay_NSadj + ifelse(tmp, 1, 0)
+    tmp <- res[["doy_ForEachUsedDay_NSadj"]] > FirstDOY_WaterYear
+    res[["year_ForEachUsedDay_NSadj_WaterYearAdj"]] <-
+      res[["year_ForEachUsedDay_NSadj"]] + as.integer(tmp)
 
     if (isTRUE(use_doy_range)) {
       # North or Southern hemisphere? eliminate unnecessary water years values
       if (latitude > 0) {
-        Idx <- grep("_S", names(doy_ranges))
+        Idx <- grep("_S", names(doy_ranges), fixed = TRUE)
         doy_ranges[Idx] <- NULL
       } else {
-        Idx <- grep("_N", names(doy_ranges))
+        Idx <- grep("_N", names(doy_ranges), fixed = TRUE)
         doy_ranges[Idx] <- NULL
       }
 
@@ -218,12 +239,12 @@ simTiming_ForEachUsedTimeUnit <- function(
           # Create daily logical vector indicating whether that doy is within
           # range or not
           res[[paste0("doy_NSadj_", names(doy_ranges[dr]), "_doyRange")]] <-
-            if (doy_range_values[1] > doy_range_values[2]) {
-              tmp <- c(doy_range_values[1]:366, 1:doy_range_values[2])
-              res$doy_ForEachUsedDay_NSadj %in% tmp
+            if (doy_range_values[[1]] > doy_range_values[[2]]) {
+              tmp <- c(doy_range_values[[1]]:366, 1:doy_range_values[[2]])
+              res[["doy_ForEachUsedDay_NSadj"]] %in% tmp
             } else {
-              tmp <- doy_range_values[1]:doy_range_values[2]
-              res$doy_ForEachUsedDay_NSadj %in% tmp
+              tmp <- doy_range_values[[1]]:doy_range_values[[2]]
+              res[["doy_ForEachUsedDay_NSadj"]] %in% tmp
             }
         }
       }
@@ -237,14 +258,17 @@ simTiming_ForEachUsedTimeUnit <- function(
   }
 
   if (any(sim_tscales == "monthly")) {
-    res$yearno_ForEachUsedMonth <- res$yearno_ForEachUsedMonth_NSadj <-
+    res[["yearno_ForEachUsedMonth"]] <-
+      res[["yearno_ForEachUsedMonth_NSadj"]] <-
       rep(seq_len(no_useyr), each = 12)
-    res$month_ForEachUsedMonth <- res$month_ForEachUsedMonth_NSadj <-
+
+    res[["month_ForEachUsedMonth"]] <-
+      res[["month_ForEachUsedMonth_NSadj"]] <-
       rep(rSW2_glovars[["st_mo"]], times = no_useyr)
 
     if (latitude < 0 && account_NorthSouth) {
-      res$month_ForEachUsedMonth_NSadj <-
-        (res$month_ForEachUsedMonth + 5) %% 12 + 1
+      res[["month_ForEachUsedMonth_NSadj"]] <-
+        (res[["month_ForEachUsedMonth"]] + 5) %% 12 + 1
     }
   }
 

@@ -38,7 +38,7 @@ getLayersWidth <- function(layers_depth) {
 #'
 #' @export
 adjustLayer_byImp <- function(depths, imp_depth, sdepths) {
-  if (any(imp_depth < depths[1])) {
+  if (any(imp_depth < depths[[1]])) {
     depths <- imp_depth
     if (length(sdepths) >= 2) {
       tmp <- findInterval(imp_depth, sdepths)
@@ -48,8 +48,8 @@ adjustLayer_byImp <- function(depths, imp_depth, sdepths) {
         c(imp_depth, sdepths[tmp + 1])
       }
     }
-  } else if (any(imp_depth < depths[2])) {
-    depths <- c(depths[1], imp_depth)
+  } else if (any(imp_depth < depths[[2]])) {
+    depths <- c(depths[[1]], imp_depth)
   }
 
   depths
@@ -210,14 +210,14 @@ add_soil_layer <- function(
   if (!is.matrix(x)) {
     x <- as.matrix(x)
   }
-  ncols <- dim(x)[2]
+  ncols <- dim(x)[[2]]
 
 
   #--- Determine weights based on depth profile
   il <- findInterval(target_cm, depths_cm)
 
   w <- if (il == 0) {
-    c(target_cm, depths_cm[1] - target_cm)
+    c(target_cm, depths_cm[[1]] - target_cm)
 
   } else if (il >= length(depths_cm)) {
     tmp <- depths_cm[length(depths_cm)]
@@ -243,7 +243,7 @@ add_soil_layer <- function(
 
     if (method == "interpolate") {
       if (il > 0) {
-        x[, il + 1] <- (x[, il] * w[1] + x[, il + 2] * w[2]) / w_sum
+        x[, il + 1] <- (x[, il] * w[[1]] + x[, il + 2] * w[[2]]) / w_sum
 
       } else {
         # Add layer at a more shallow depth than any existing layer
@@ -251,8 +251,8 @@ add_soil_layer <- function(
       }
 
     } else if (method == "exhaust") {
-      x[, il + 1] <- x[, il + 2] * w[1] / w_sum
-      x[, il + 2] <- x[, il + 2] * w[2] / w_sum
+      x[, il + 1] <- x[, il + 2] * w[[1]] / w_sum
+      x[, il + 2] <- x[, il + 2] * w[[2]] / w_sum
     }
 
   } else if (ncols == il) {
@@ -264,8 +264,8 @@ add_soil_layer <- function(
 
     } else if (method == "exhaust") {
       # First calculate x[, il + 1] so that x[, il] maintains previous value
-      x[, il + 1] <- x[, il] * w[2] / w_sum
-      x[, il] <- x[, il] * w[1] / w_sum
+      x[, il + 1] <- x[, il] * w[[2]] / w_sum
+      x[, il] <- x[, il] * w[[1]] / w_sum
     }
   }
 
@@ -293,7 +293,7 @@ dissolve_soil_layer <- function(
 
   if (!is.matrix(x)) x <- data.matrix(x)
 
-  ncols <- dim(x)[2]
+  ncols <- dim(x)[[2]]
 
   il <- which(target_cm == depths_cm)
 
@@ -314,7 +314,7 @@ dissolve_soil_layer <- function(
         c(target_cm - depths_cm[il - 1], depths_cm[il + 1] - target_cm)
       }
 
-      xnew[, il] <- (x[, il] * w[1] + x[, il + 1] * w[2]) / sum(w)
+      xnew[, il] <- (x[, il] * w[[1]] + x[, il + 1] * w[[2]]) / sum(w)
 
     } else if (method == "exhaust") {
       # sum of previous layers
@@ -325,11 +325,13 @@ dissolve_soil_layer <- function(
 
   } else {
     #--- Cannot remove the deepest (or only) soil layer
+    # nolint start: nonportable_path_linter.
     if (ncols == 1) {
       warning("Cannot remove/combine the only soil layer.")
     } else {
       warning("Cannot remove/combine the deepest soil layer.")
     }
+    # nolint end
   }
 
   x
@@ -445,18 +447,27 @@ update_soil_profile <- function(
   # Variables for which to update soil profile
   if (length(variables) == 0) {
     # Assumption: colnames of `soil_data` are formatted as `var_Lx`
-    variables <- unique(sapply(
-      X = strsplit(cns_data, split = "_", fixed = TRUE),
-      FUN = function(x) paste0(x[-length(x)], collapse = "_")
-    ))
+    variables <- unique(
+      vapply(
+        X = strsplit(cns_data, split = "_", fixed = TRUE),
+        FUN = function(x) paste0(x[-length(x)], collapse = "_"),
+        FUN.VALUE = NA_character_
+      )
+    )
 
   } else {
-    stopifnot(sapply(variables, function(x) any(grepl(x, cns_data))))
+    stopifnot(
+      vapply(variables, function(x) any(grepl(x, cns_data)), FUN.VALUE = NA)
+    )
   }
 
   # Determine how to add different soil variables
   # - variables whose values will be exhausted (all others are interpolated)
-  tmp <- sapply(vars_exhaust, function(x) any(grepl(x, cns_data)))
+  tmp <- vapply(
+    vars_exhaust,
+    function(x) any(grepl(x, cns_data)),
+    FUN.VALUE = NA
+  )
   vars_exhaust <- vars_exhaust[tmp]
 
 
@@ -475,7 +486,7 @@ update_soil_profile <- function(
 
 
   #--- Identify layers and groups of sites with the same profile (soil layers)
-  ids_layers <- seq_len(dim(soil_layers)[2])
+  ids_layers <- seq_len(dim(soil_layers)[[2]])
   avail_sl_ids <- apply(soil_layers, 1, paste0, collapse = "x")
   layer_sets <- unique(avail_sl_ids)
   N_sets <- length(layer_sets)
@@ -524,7 +535,7 @@ update_soil_profile <- function(
 
       # --- Add requested soil layers
       # Identify which requested layers need to be added
-      ldset_prev <- stats::na.exclude(soil_layers[which(il_set)[1], ])
+      ldset_prev <- stats::na.exclude(soil_layers[which(il_set)[[1]], ])
       ldset <- ldset_prev
       req_sd_toadd <- setdiff(requested_soil_layers, ldset)
 
@@ -709,12 +720,12 @@ update_soil_profile <- function(
 #' @export
 identify_soillayers <- function(depths, sdepth) {
   it <- findInterval(depths, sdepth)
-  if (any(is.na(it))) {
+  if (anyNA(it)) {
     as.integer(na.exclude(it))
   } else if (length(it) > 1 && diff(it) > 0) {
-    (1 + it[1]):(it[2])
+    (1 + it[[1]]):(it[[2]])
   } else {
-    it[1]
+    it[[1]]
   }
 }
 

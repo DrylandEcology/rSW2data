@@ -34,8 +34,8 @@ test_that("check_depth_table", {
   # This should be ok
   soil_checks2 <- check_depth_table(
     table_depths = soils[1, , drop = FALSE],
-    soil_depth = sd_cm[1],
-    n_layers = nlyrs[1]
+    soil_depth = sd_cm[[1]],
+    n_layers = nlyrs[[1]]
   )
 
   expect_true(soil_checks2)
