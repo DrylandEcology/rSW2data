@@ -6,7 +6,7 @@ test_that("deduce_complete_soil_texture", {
     silt_pct = c(41.8, NA, 21.5, 15, NA, 1, 15)
   )
 
-  expect_equal(which(complete.cases(x)), 1)
+  expect_identical(which(complete.cases(x)), 1L)
 
 
   x2 <- deduce_complete_soil_texture(
@@ -20,7 +20,7 @@ test_that("deduce_complete_soil_texture", {
   # row 6: missing clay was not filled in because others sum to <= 5
   # row 7: previously missing sand was deduced to 75%
 
-  expect_equal(which(complete.cases(x2)), c(1, 3, 7))
+  expect_identical(which(complete.cases(x2)), c(1L, 3L, 7L))
 
 
   x3 <- deduce_complete_soil_texture(
@@ -30,7 +30,7 @@ test_that("deduce_complete_soil_texture", {
     ignore_le = 0
   )
 
-  expect_equal(which(complete.cases(x3)), c(1, 3, 6:7))
+  expect_identical(which(complete.cases(x3)), c(1L, 3L, 6:7))
 })
 
 
@@ -47,12 +47,12 @@ test_that("set_missing_soils_to_value", {
   is_missing <- !is.finite(x[, var])
 
   res <- set_missing_soils_to_value(x, var, where = "none")
-  expect_equal(is.na(res[, var]), is_missing)
-  expect_equal(res[, !grepl(var, colnames(res))], x[, cns_wo_var])
+  expect_identical(is.na(res[, var]), is_missing)
+  expect_identical(res[, !grepl(var, colnames(res))], x[, cns_wo_var])
 
   res <- set_missing_soils_to_value(x, var, where = "all")
   expect_true(all(is.finite(res[, var])))
-  expect_equal(res[, !grepl(var, colnames(res))], x[, cns_wo_var])
+  expect_identical(res[, !grepl(var, colnames(res))], x[, cns_wo_var])
 
 
 
@@ -69,8 +69,8 @@ test_that("set_missing_soils_to_value", {
       horizon = "Layer_ID"
     )
     expect_true(all(is.finite(res[is_shallowest, var])))
-    expect_equal(!is.finite(res[, var]), is_missing_but_shallow)
-    expect_equal(res[, !grepl(var, colnames(res))][, -1], x[, cns_wo_var])
+    expect_identical(!is.finite(res[, var]), is_missing_but_shallow)
+    expect_identical(res[, !grepl(var, colnames(res))][, -1], x[, cns_wo_var])
 
 
     res <- set_missing_soils_to_value(
@@ -80,8 +80,8 @@ test_that("set_missing_soils_to_value", {
       horizon = horizons
     )
     expect_true(all(is.finite(res[is_shallowest, var])))
-    expect_equal(!is.finite(res[, var]), is_missing_but_shallow)
-    expect_equal(res[, !grepl(var, colnames(res))], x[, cns_wo_var])
+    expect_identical(!is.finite(res[, var]), is_missing_but_shallow)
+    expect_identical(res[, !grepl(var, colnames(res))], x[, cns_wo_var])
 
     expect_message(set_missing_soils_to_value(
       x,
@@ -117,16 +117,16 @@ test_that("impute_soils", {
   ))
 
   # NAs in shallowest layer are not imputed even if requested
-  expect_equal(which(is.na(res1[, "coarse"])), which(x1[, "layer_no"] == 1))
+  expect_identical(which(is.na(res1[, "coarse"])), which(x1[, "layer_no"] == 1))
   # NAs of requested variables replaced with values in deeper layers
   expect_true(!all(is.na(res1[, "sand_pct"])))
   # Values of unrequested variables are not changed
-  expect_equal(
+  expect_identical(
     x1[, c("clay_pct", "silt_pct")],
     res1[, c("clay_pct", "silt_pct")]
   )
   # Order of data by site and layer is not changed
-  expect_equal(res1[, c("id", "layer_no")], x1[, c("id", "layer_no")])
+  expect_identical(res1[, c("id", "layer_no")], x1[, c("id", "layer_no")])
 
   # verbose argument produces messages
   expect_message(suppressWarnings(impute_soils(
@@ -149,9 +149,9 @@ test_that("impute_soils", {
   ))
 
   # Order of data by site and layer is not changed
-  expect_equal(res2[, c("id", "layer_no")], x2[, c("id", "layer_no")])
+  expect_identical(res2[, c("id", "layer_no")], x2[, c("id", "layer_no")])
   # Imputation is independent of order of data
-  expect_equal(
+  expect_identical(
     res2[order(res2[, "id"], res2[, "layer_no"]), ],
     res1
   )
@@ -169,9 +169,9 @@ test_that("impute_soils", {
   ))
 
   # Order of data by site and layer is not changed
-  expect_equal(res3[, c("id", "layer_no")], x3[, c("id", "layer_no")])
+  expect_identical(res3[, c("id", "layer_no")], x3[, c("id", "layer_no")])
   # Imputation is independent of order of data
-  expect_equal(
+  expect_identical(
     res3[order(res3[, "id"], res3[, "layer_no"]), ],
     res1
   )
@@ -199,22 +199,22 @@ test_that("estimate_bulkdensity", {
 test_that("Bare-soil evaporation coefficients", {
   check_bsevap_coeffs <- function(bsevap_coeff, ld, md, Ns, Nl, info = NULL) {
     # Coeffs of each site sum to one
-    expect_equal(apply(bsevap_coeff, 1, sum), rep(1, Ns), info = info)
+    expect_identical(apply(bsevap_coeff, 1, sum), rep(1, Ns), info = info)
 
     # Coeffs are between 0 and 1
-    expect_equal(
+    expect_identical(
       as.vector(bsevap_coeff <= 1), rep(TRUE, Ns * Nl),
       info = info
     )
 
-    expect_equal(
+    expect_identical(
       as.vector(bsevap_coeff >= 0), rep(TRUE, Ns * Nl),
       info = info
     )
 
     # If max is shallower than first layer, then first layer is 1
     if (ld[[1]] >= md) {
-      expect_equal(bsevap_coeff[, 1], rep(1, Ns))
+      expect_identical(bsevap_coeff[, 1], rep(1, Ns))
     }
 
     # Monotonic decrease with soil depth
@@ -233,7 +233,7 @@ test_that("Bare-soil evaporation coefficients", {
       } else {
         t(deltas)
       }
-      expect_equal(
+      expect_identical(
         deltas <= 0,
         matrix(TRUE, nrow = Ns, ncol = tmpn - 1)
       )
@@ -242,7 +242,7 @@ test_that("Bare-soil evaporation coefficients", {
     # No bare-soil evaporation from depths greater than
     # 'depth_max_bs_evap_cm'
     lmax <- max(1, min(Nl, findInterval(md, c(0, na.exclude(ld)))))
-    expect_equal(
+    expect_identical(
       apply(
         X = bsevap_coeff,
         MARGIN = 1,

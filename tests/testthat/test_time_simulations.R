@@ -5,13 +5,13 @@ input_sim_time <- list(
   startyr_leapyear = list(
     useyrs = yrs <- 1979:2010,
     no.usedy = length(rSW2utils::days_in_years(yrs[[1]], yrs[[length(yrs)]])),
-    no.usemo = length(yrs) * 12
+    no.usemo = length(yrs) * 12L
   ),
   # test object 2: startyr is not leap year
   startyr_noleapyear = list(
     useyrs = yrs <- 1969:2000,
     no.usedy = length(rSW2utils::days_in_years(yrs[[1]], yrs[[length(yrs)]])),
-    no.usemo = length(yrs) * 12
+    no.usemo = length(yrs) * 12L
   )
 )
 
@@ -19,9 +19,9 @@ input_sim_time <- list(
 #--- TESTS
 test_that("Obtain time information", {
   # Spinup of simulation
-  expect_equal(getStartYear(1980), 1981L)
-  expect_equal(getStartYear(0), 1L)
-  expect_equal(getStartYear(0, 10), 10L)
+  expect_identical(getStartYear(1980), 1981L)
+  expect_identical(getStartYear(0), 1L)
+  expect_identical(getStartYear(0, 10), 10L)
 
 
   # Describe simulation time
@@ -29,13 +29,13 @@ test_that("Obtain time information", {
     list(simstartyr = 1979, startyr = 1980, endyr = 2010)
   )
   ns <- names(st1)
-  expect_equal(
+  expect_identical(
     st1,
     setup_time_simulation_run(
       sim_time = list(spinup_N = 1, startyr = 1980, endyr = 2010)
     )[ns]
   )
-  expect_equal(
+  expect_identical(
     st1,
     setup_time_simulation_run(
       sim_time = list(simstartyr = 1979, spinup_N = 1, endyr = 2010)
@@ -76,7 +76,7 @@ test_that("Obtain time information", {
           shQuote(d), "/ hemisphere =", names(st2)[[h]]
         )
 
-        expect_equal(
+        expect_identical(
           length(st2[[h]][[d]]),
           input_sim_time[[k]][["no.usedy"]],
           info = info
@@ -96,7 +96,7 @@ test_that("Obtain time information", {
           shQuote(d), "/ hemisphere =", names(st2)[[h]]
         )
 
-        expect_equal(
+        expect_identical(
           length(st2[[h]][[d]]),
           input_sim_time[[k]][["no.usemo"]],
           info = info
@@ -111,20 +111,20 @@ test_that("Check years", {
   expect_silent(
     x <- update_requested_years(2000, 2010, 1950, 2010, verbose = FALSE)
   )
-  expect_equal(x[["start_year"]], 2000L)
-  expect_equal(x[["end_year"]], 2010L)
+  expect_identical(x[["start_year"]], 2000L)
+  expect_identical(x[["end_year"]], 2010L)
 
   expect_output(
     x <- update_requested_years(1940, 2010, 1950, 2010, verbose = TRUE),
     regexp = "requested start year"
   )
-  expect_equal(x[["start_year"]], 1950L)
-  expect_equal(x[["end_year"]], 2010L)
+  expect_identical(x[["start_year"]], 1950L)
+  expect_identical(x[["end_year"]], 2010L)
 
   expect_output(
     x <- update_requested_years(2000, 2020, 1950, 2010, verbose = TRUE),
     regexp = "requested end year"
   )
-  expect_equal(x[["start_year"]], 2000L)
-  expect_equal(x[["end_year"]], 2010L)
+  expect_identical(x[["start_year"]], 2000L)
+  expect_identical(x[["end_year"]], 2010L)
 })
