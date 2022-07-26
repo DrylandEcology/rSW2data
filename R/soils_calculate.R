@@ -167,10 +167,12 @@ set_missing_soils_to_value <- function(
         horizon
 
       } else {
+        # nolint start: nonportable_path_linter.
         stop(
           "Argument `horizon` must be either a column name of `x` or ",
           "a numeric vector indicating soil horizon/layer numbers."
         )
+        # nolint end
       }
 
       x[is_missing & k_horizon == 1, variable] <- value
@@ -248,10 +250,12 @@ impute_soils <- function(
   cns <- colnames(x)
   for (var in c(var_values, var_site_id, var_horizon)) {
     if (!(var %in% cns)) {
+      # nolint start: nonportable_path_linter.
       stop(
         shQuote(var),
         " is a required/requested column name, but cannot be found."
       )
+      # nolint end
     }
   }
 
@@ -299,6 +303,7 @@ impute_soils <- function(
   if (verbose) {
     n_missing <- sum(is.na(x[, var_values]))
 
+    # nolint start: nonportable_path_linter.
     message(
       "Imputed values for n = ", n_imped_cokeys, " locations ",
       "in n = ", n_imped_hzs, " soil horizons/layers ",
@@ -309,6 +314,7 @@ impute_soils <- function(
         "."
       }
     )
+    # nolint end
   }
 
   # --- Re-create input order of data and output

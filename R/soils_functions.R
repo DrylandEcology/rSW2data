@@ -325,11 +325,13 @@ dissolve_soil_layer <- function(
 
   } else {
     #--- Cannot remove the deepest (or only) soil layer
+    # nolint start: nonportable_path_linter.
     if (ncols == 1) {
       warning("Cannot remove/combine the only soil layer.")
     } else {
       warning("Cannot remove/combine the deepest soil layer.")
     }
+    # nolint end
   }
 
   x
