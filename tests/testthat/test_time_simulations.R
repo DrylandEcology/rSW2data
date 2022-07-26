@@ -63,7 +63,14 @@ test_that("Obtain time information", {
 
 
     for (h in seq_along(st2)) {
-      for (d in grep("ForEachUsedDay", names(st2[["N"]]), value = TRUE)) {
+      dvals <- grep(
+        "ForEachUsedDay",
+        names(st2[["N"]]),
+        value = TRUE,
+        fixed = TRUE
+      )
+
+      for (d in dvals) {
         info <- paste(
           "For test =", names(input_sim_time)[k], "/ d =",
           shQuote(d), "/ hemisphere =", names(st2)[[h]]
@@ -76,7 +83,14 @@ test_that("Obtain time information", {
         )
       }
 
-      for (d in grep("ForEachUsedMonth", names(st2[["N"]]), value = TRUE)) {
+      dvals <- grep(
+        "ForEachUsedMonth",
+        names(st2[["N"]]),
+        value = TRUE,
+        fixed = TRUE
+      )
+
+      for (d in dvals) {
         info <- paste(
           "For test =", names(input_sim_time)[k], "/ d =",
           shQuote(d), "/ hemisphere =", names(st2)[[h]]

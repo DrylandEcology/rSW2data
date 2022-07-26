@@ -213,10 +213,10 @@ simTiming_ForEachUsedTimeUnit <- function(
     if (isTRUE(use_doy_range)) {
       # North or Southern hemisphere? eliminate unnecessary water years values
       if (latitude > 0) {
-        Idx <- grep("_S", names(doy_ranges))
+        Idx <- grep("_S", names(doy_ranges), fixed = TRUE)
         doy_ranges[Idx] <- NULL
       } else {
-        Idx <- grep("_N", names(doy_ranges))
+        Idx <- grep("_N", names(doy_ranges), fixed = TRUE)
         doy_ranges[Idx] <- NULL
       }
 
