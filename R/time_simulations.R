@@ -258,9 +258,12 @@ simTiming_ForEachUsedTimeUnit <- function(
   }
 
   if (any(sim_tscales == "monthly")) {
-    res[["yearno_ForEachUsedMonth"]] <- res[["yearno_ForEachUsedMonth_NSadj"]] <-
+    res[["yearno_ForEachUsedMonth"]] <-
+      res[["yearno_ForEachUsedMonth_NSadj"]] <-
       rep(seq_len(no_useyr), each = 12)
-    res[["month_ForEachUsedMonth"]] <- res[["month_ForEachUsedMonth_NSadj"]] <-
+
+    res[["month_ForEachUsedMonth"]] <-
+      res[["month_ForEachUsedMonth_NSadj"]] <-
       rep(rSW2_glovars[["st_mo"]], times = no_useyr)
 
     if (latitude < 0 && account_NorthSouth) {
