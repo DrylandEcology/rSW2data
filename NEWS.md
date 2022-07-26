@@ -1,9 +1,9 @@
-# rSW2data v0.1.4-9000
+# rSW2data v0.1.4
 * New `reshape_soilproperties_to_long()` and `reshape_soilproperties_to_wide()`
   reshape data frames containing soil properties between wide and (semi-) long
   formats.
 * Linting updated to `lintr` >= 3 and
-  lint workflow switched from package tests to Github Action (#5).
+  lint workflow switched from package tests to Github Action (#8).
 * Github Actions are triggered for `release/**` branches in addition to `main`.
 
 
