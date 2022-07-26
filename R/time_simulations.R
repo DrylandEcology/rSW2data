@@ -208,7 +208,7 @@ simTiming_ForEachUsedTimeUnit <- function(
 
     tmp <- res[["doy_ForEachUsedDay_NSadj"]] > FirstDOY_WaterYear
     res$year_ForEachUsedDay_NSadj_WaterYearAdj <- # nolint
-      res[["year_ForEachUsedDay_NSadj"]] + ifelse(tmp, 1, 0)
+      res[["year_ForEachUsedDay_NSadj"]] + as.integer(tmp)
 
     if (isTRUE(use_doy_range)) {
       # North or Southern hemisphere? eliminate unnecessary water years values
