@@ -306,7 +306,8 @@ test_that("reshape_soilproperties", {
     fclay_L1 = c(0.1, 0.2),
     db_L2 = c(1.6, 1.7),
     fsand_L2 = c(0.75, 0.3),
-    fclay_L2 = c(0.1, 0.15)
+    fclay_L2 = c(0.1, 0.15),
+    stringsAsFactors = FALSE
   )
 
 
