@@ -36,13 +36,13 @@ test_that("add_soil_layer", {
       method = "interpolate"
     )
 
-    expect_equal(nrow(tmp), nrow(xsand))
-    expect_equal(ncol(tmp), N + 1)
+    expect_identical(nrow(tmp), nrow(xsand))
+    expect_identical(ncol(tmp), N + 1L)
 
     if (il %in% c(0, N)) {
       # Adding a new shallowest or deepest layer carries existing values forward
-      expect_equal(tmp[, ilt + 1], xsand[, ilt + 1])
-      expect_equal(tmp[, ilt + 2], xsand[, ilt + 1])
+      expect_identical(tmp[, ilt + 1], xsand[, ilt + 1])
+      expect_identical(tmp[, ilt + 2], xsand[, ilt + 1])
 
     } else {
       # Check that interpolated values are in-between previous values
@@ -64,13 +64,14 @@ test_that("add_soil_layer", {
       method = "exhaust"
     )
 
-    expect_equal(nrow(tmp), nrow(xtrco))
-    expect_equal(ncol(tmp), N + 1)
+    expect_identical(nrow(tmp), nrow(xtrco))
+    expect_identical(ncol(tmp), N + 1L)
 
     # Check that sum of exhausted values equals the previous value
     expect_equal(
       apply(tmp[, (ilt + 1):(ilt + 2)], 1, sum),
-      xtrco[, ilt + 1]
+      xtrco[, ilt + 1],
+      tolerance = sqrt(.Machine[["double.eps"]])
     )
 
     # Check that exhausted values are larger than 0 and smaller then previously
@@ -140,7 +141,7 @@ test_that("dissolve_soil_layer", {
         )
       )
 
-      expect_equal(tmp, xsand)
+      expect_identical(tmp, xsand)
 
     } else {
 
@@ -152,8 +153,8 @@ test_that("dissolve_soil_layer", {
         method = "interpolate"
       )
 
-      expect_equal(nrow(tmp), nrow(xsand))
-      expect_equal(ncol(tmp), N - 1)
+      expect_identical(nrow(tmp), nrow(xsand))
+      expect_identical(ncol(tmp), N - 1L)
 
       # Check that interpolated values are in-between previous values
       expect_true(
@@ -173,11 +174,11 @@ test_that("dissolve_soil_layer", {
         method = "exhaust"
       )
 
-      expect_equal(nrow(tmp), nrow(xtrco))
-      expect_equal(ncol(tmp), N - 1)
+      expect_identical(nrow(tmp), nrow(xtrco))
+      expect_identical(ncol(tmp), N - 1L)
 
       # Check that sum of exhausted values equals the previous value
-      expect_equal(
+      expect_identical(
         tmp[, il],
         apply(xtrco[, il:(il + 1)], 1, sum)
       )
@@ -288,8 +289,8 @@ test_that("update_soil_profile", {
       )
 
       expect_false(new_soils2[["updated"]])
-      expect_equal(new_soils2[["soil_layers"]], new_soils[["soil_layers"]])
-      expect_equal(new_soils2[["soil_data"]], new_soils[["soil_data"]])
+      expect_identical(new_soils2[["soil_layers"]], new_soils[["soil_layers"]])
+      expect_identical(new_soils2[["soil_data"]], new_soils[["soil_data"]])
     }
   }
 })
