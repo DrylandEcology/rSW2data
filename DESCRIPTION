@@ -17,7 +17,7 @@ Imports:
 Suggests:
     testthat (>= 3.0.0),
     spelling,
-    lintr,
+    lintr (>= 3.0.0),
     covr,
     utils
 Remotes:
