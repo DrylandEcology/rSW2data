@@ -18,7 +18,7 @@ has_NAs_pooled_at_depth <- function(x) {
 
   sapply(
     apply(x, 1, function(dat) rle(is.na(dat))),
-    function(dat) length(dat$values) <= 2 && dat$values[length(dat$values)]
+    function(dat) length(dat[["values"]]) <= 2 && dat[["values"]][length(dat[["values"]])]
   )
 }
 
@@ -123,7 +123,7 @@ check_depth_table <- function(table_depths, soil_depth, n_layers) {
     FUN = function(x) {
       if (sum(x) > 0) {
         tmp <- rle(x)
-        sum(tmp[["values"]]) == 1 && tmp[["values"]][1]
+        sum(tmp[["values"]]) == 1 && tmp[["values"]][[1]]
 
       } else {
         TRUE # nosoil
@@ -308,7 +308,7 @@ check_texture_table <- function(
       data = table_texture,
       n_layers = n_layers,
       vars = vars_notzero,
-      fun = function(x) abs(x) < sqrt(.Machine$double.eps)
+      fun = function(x) abs(x) < sqrt(.Machine[["double.eps"]])
     )
 
     res_zero <- aggregate_soillayer_condition(list_zeros, n_layers)
@@ -344,8 +344,8 @@ check_soillayer_condition <- function(data, n_layers, vars, fun) {
       function(x) {
         n <- length(x) - 1
         tmp <- rep(NA, n)
-        if (is.finite(x[1])) {
-          ids <- seq_len(min(n, x[1]))
+        if (is.finite(x[[1]])) {
+          ids <- seq_len(min(n, x[[1]]))
           tmp[ids] <- fun(x[1 + ids])
         }
         tmp

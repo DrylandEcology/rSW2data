@@ -143,7 +143,7 @@ set_missing_soils_to_value <- function(
   variable,
   value = 0,
   where = c("none", "all", "at_surface"),
-  horizon = colnames(x)[1],
+  horizon = colnames(x)[[1]],
   verbose = FALSE
 ) {
 
@@ -431,7 +431,7 @@ calc_BareSoilEvapCoefs <- function(
 ) {
 
   #--- Process inputs
-  depth_max_bs_evap_cm <- depth_max_bs_evap_cm[1]
+  depth_max_bs_evap_cm <- depth_max_bs_evap_cm[[1]]
   stopifnot(
     is.finite(depth_max_bs_evap_cm),
     depth_max_bs_evap_cm >= 0
@@ -450,7 +450,7 @@ calc_BareSoilEvapCoefs <- function(
   if (is.null(dim(layers_depth))) {
     layers_depth <- matrix(
       data = layers_depth,
-      nrow = dim(sand)[1],
+      nrow = dim(sand)[[1]],
       ncol = length(layers_depth),
       byrow = TRUE
     )
@@ -496,14 +496,14 @@ calc_BareSoilEvapCoefs <- function(
       # No missing values allowed in layers less deep than depth_max_bs_evap_cm
       tmp <- cumsum(diff(c(0, ls_ld[1, ]))) >= depth_max_bs_evap_cm
       if (any(tmp, na.rm = TRUE)) {
-        which(tmp)[1]
+        which(tmp)[[1]]
       } else {
         # all layers less deep than depth_max_bs_evap_cm
         # -> left set of non-NA
         # but fail if NA mixed in with real depth values
         tmp2 <- rle(!is.na(ls_ld[1, ]))
-        if (isTRUE(tmp2[["values"]][1]) && sum(tmp2[["values"]]) == 1) {
-          tmp2[["lengths"]][1]
+        if (isTRUE(tmp2[["values"]][[1]]) && sum(tmp2[["values"]]) == 1) {
+          tmp2[["lengths"]][[1]]
         }
       }
     }
@@ -566,7 +566,7 @@ calc_BareSoilEvapCoefs <- function(
           which(i0)
         } else {
           tmp <- which(xdm < 0)
-          if (length(tmp) > 0) tmp[1] else length(x)
+          if (length(tmp) > 0) tmp[[1]] else length(x)
         }
         c(diff(c(0, x))[seq_len(ld)], rep(0L, length(x) - ld))
       }
@@ -604,7 +604,7 @@ calc_BareSoilEvapCoefs <- function(
           which(i0)
         } else {
           tmp <- which(x < 0)
-          if (length(tmp) > 0) tmp[1] else sum(!is.na(x))
+          if (length(tmp) > 0) tmp[[1]] else sum(!is.na(x))
         }
         ld0 <- max(0, ld - 1)
 

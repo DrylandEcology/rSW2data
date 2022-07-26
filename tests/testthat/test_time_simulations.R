@@ -4,13 +4,13 @@ input_sim_time <- list(
   # test object 1: startyr is leap year
   startyr_leapyear = list(
     useyrs = yrs <- 1979:2010,
-    no.usedy = length(rSW2utils::days_in_years(yrs[1], yrs[length(yrs)])),
+    no.usedy = length(rSW2utils::days_in_years(yrs[[1]], yrs[[length(yrs)]])),
     no.usemo = length(yrs) * 12
   ),
   # test object 2: startyr is not leap year
   startyr_noleapyear = list(
     useyrs = yrs <- 1969:2000,
-    no.usedy = length(rSW2utils::days_in_years(yrs[1], yrs[length(yrs)])),
+    no.usedy = length(rSW2utils::days_in_years(yrs[[1]], yrs[[length(yrs)]])),
     no.usemo = length(yrs) * 12
   )
 )

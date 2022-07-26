@@ -179,7 +179,7 @@ test_that("impute_soils", {
 
 
 test_that("estimate_bulkdensity", {
-  tol <- sqrt(.Machine$double.eps)
+  tol <- sqrt(.Machine[["double.eps"]])
 
   for (theta_sat in seq(0, 1, by = 0.1)) {
     for (fragvol in seq(0, 1, by = 0.1)) {
@@ -213,7 +213,7 @@ test_that("Bare-soil evaporation coefficients", {
     )
 
     # If max is shallower than first layer, then first layer is 1
-    if (ld[1] >= md) {
+    if (ld[[1]] >= md) {
       expect_equal(bsevap_coeff[, 1], rep(1, Ns))
     }
 
@@ -263,7 +263,7 @@ test_that("Bare-soil evaporation coefficients", {
   tldv1 <- c(5, 10, 15, 30)
   tldv2 <- c(5, 15, 20, 50, 100)
   tldvs <- list(tldv1, tldv2)
-  tmd <- tldv1[3] # depth_max_bs_evap_cm
+  tmd <- tldv1[[3]] # depth_max_bs_evap_cm
 
   tldm <- matrix(NA, nrow = N_sites, ncol = max(lengths(tldvs)))
   for (k1 in seq_along(ids_sets)) {
@@ -343,7 +343,7 @@ test_that("Bare-soil evaporation coefficients", {
   for (k1 in seq_along(ids_sets)) {
     check_bsevap_coeffs(
       bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
-      ld = tldm[ids_sets[[k1]][1], seq_len(length(tldvs[[k1]]))],
+      ld = tldm[ids_sets[[k1]][[1]], seq_len(length(tldvs[[k1]]))],
       md = tmd,
       Ns = length(ids_sets[[k1]]),
       Nl = ncol(tspm)
@@ -371,7 +371,7 @@ test_that("Bare-soil evaporation coefficients", {
   for (k1 in seq_along(ids_sets)) {
     check_bsevap_coeffs(
       bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
-      ld = tldm[ids_sets[[k1]][1], seq_len(length(tldvs[[k1]]))],
+      ld = tldm[ids_sets[[k1]][[1]], seq_len(length(tldvs[[k1]]))],
       md = 30,
       Ns = length(ids_sets[[k1]]),
       Nl = ncol(tspm)
@@ -393,7 +393,7 @@ test_that("Bare-soil evaporation coefficients", {
   for (k1 in seq_along(ids_sets)) {
     check_bsevap_coeffs(
       bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
-      ld = tldm[ids_sets[[k1]][1], seq_len(length(tldvs[[k1]]))],
+      ld = tldm[ids_sets[[k1]][[1]], seq_len(length(tldvs[[k1]]))],
       md = tmd,
       Ns = length(ids_sets[[k1]]),
       Nl = ncol(tspm)
@@ -415,7 +415,7 @@ test_that("Bare-soil evaporation coefficients", {
   for (k1 in seq_along(ids_sets)) {
     check_bsevap_coeffs(
       bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
-      ld = tldm[ids_sets[[k1]][1], seq_len(length(tldvs[[k1]]))],
+      ld = tldm[ids_sets[[k1]][[1]], seq_len(length(tldvs[[k1]]))],
       md = tmd,
       Ns = length(ids_sets[[k1]]),
       Nl = ncol(tspm)
@@ -439,10 +439,10 @@ test_that("Bare-soil evaporation coefficients", {
       tldv1,
       tspm[, 1, drop = FALSE],
       tcpm[, 1, drop = FALSE],
-      tldv1[1]
+      tldv1[[1]]
     ),
     ld = tldv1,
-    md = tldv1[1],
+    md = tldv1[[1]],
     Ns = nrow(tspm),
     Nl = 1
   )
@@ -457,7 +457,7 @@ test_that("Bare-soil evaporation coefficients", {
   for (k1 in seq_along(ids_sets)) {
     check_bsevap_coeffs(
       bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
-      ld = tldm[ids_sets[[k1]][1], seq_len(length(tldvs[[k1]]))],
+      ld = tldm[ids_sets[[k1]][[1]], seq_len(length(tldvs[[k1]]))],
       md = min(tldm[1, ], na.rm = TRUE),
       Ns = length(ids_sets[[k1]]),
       Nl = 1
@@ -467,9 +467,9 @@ test_that("Bare-soil evaporation coefficients", {
 
   #--- * Argument layer has only one layer ------
   check_bsevap_coeffs(
-    calc_BareSoilEvapCoefs(tldv1[1], tspm, tcpm, tldv1[1]),
-    ld = tldv1[1],
-    md = tldv1[1],
+    calc_BareSoilEvapCoefs(tldv1[[1]], tspm, tcpm, tldv1[[1]]),
+    ld = tldv1[[1]],
+    md = tldv1[[1]],
     Ns = nrow(tspm),
     Nl = ncol(tspm)
   )
@@ -483,7 +483,7 @@ test_that("Bare-soil evaporation coefficients", {
   for (k1 in seq_along(ids_sets)) {
     check_bsevap_coeffs(
       bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
-      ld = tldm[ids_sets[[k1]][1], 1, drop = FALSE],
+      ld = tldm[ids_sets[[k1]][[1]], 1, drop = FALSE],
       md = min(tldm[, 1]),
       Ns = length(ids_sets[[k1]]),
       Nl = ncol(tspm)
@@ -520,7 +520,7 @@ test_that("Bare-soil evaporation coefficients", {
     if (length(ids) > 0) {
       check_bsevap_coeffs(
         bsevap_coeff[ids, , drop = FALSE],
-        ld = tldm[ids[1], seq_len(length(tldvs[[k1]]))],
+        ld = tldm[ids[[1]], seq_len(length(tldvs[[k1]]))],
         md = tmd,
         Ns = length(ids),
         Nl = ncol(tspm)
@@ -554,8 +554,8 @@ test_that("Bare-soil evaporation coefficients", {
 
   #--- * md is shallower than the shallowest layer ------
   check_bsevap_coeffs(
-    calc_BareSoilEvapCoefs(tldv1, tspm, tcpm, tldv1[1] - 1),
-    ld = tldv1[1] - 1,
+    calc_BareSoilEvapCoefs(tldv1, tspm, tcpm, tldv1[[1]] - 1),
+    ld = tldv1[[1]] - 1,
     md = tmd,
     Ns = nrow(tspm),
     Nl = ncol(tspm)
@@ -570,7 +570,7 @@ test_that("Bare-soil evaporation coefficients", {
   for (k1 in seq_along(ids_sets)) {
     check_bsevap_coeffs(
       bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
-      ld = tldm[ids_sets[[k1]][1], seq_len(length(tldvs[[k1]]))],
+      ld = tldm[ids_sets[[k1]][[1]], seq_len(length(tldvs[[k1]]))],
       md = min(tldm, na.rm = TRUE) - 1,
       Ns = length(ids_sets[[k1]]),
       Nl = ncol(tspm)
@@ -604,7 +604,7 @@ test_that("Bare-soil evaporation coefficients", {
   for (k1 in seq_along(ids_sets)) {
     check_bsevap_coeffs(
       bsevap_coeff[ids_sets[[k1]], , drop = FALSE],
-      ld = tldm[ids_sets[[k1]][1], seq_len(length(tldvs[[k1]]))],
+      ld = tldm[ids_sets[[k1]][[1]], seq_len(length(tldvs[[k1]]))],
       md = mdd,
       Ns = length(ids_sets[[k1]]),
       Nl = ncol(tspm)
