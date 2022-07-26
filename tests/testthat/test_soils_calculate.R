@@ -117,14 +117,19 @@ test_that("impute_soils", {
   ))
 
   # NAs in shallowest layer are not imputed even if requested
-  expect_identical(which(is.na(res1[, "coarse"])), which(x1[, "layer_no"] == 1))
+  expect_identical(
+    which(is.na(res1[, "coarse"])),
+    which(x1[, "layer_no"] == 1)
+  )
   # NAs of requested variables replaced with values in deeper layers
-  expect_true(!all(is.na(res1[, "sand_pct"])))
+  expect_false(anyNA(res1[, "sand_pct"]))
+
   # Values of unrequested variables are not changed
   expect_identical(
     x1[, c("clay_pct", "silt_pct")],
     res1[, c("clay_pct", "silt_pct")]
   )
+
   # Order of data by site and layer is not changed
   expect_identical(res1[, c("id", "layer_no")], x1[, c("id", "layer_no")])
 
