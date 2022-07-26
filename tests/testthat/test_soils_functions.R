@@ -36,13 +36,13 @@ test_that("add_soil_layer", {
       method = "interpolate"
     )
 
-    expect_equal(nrow(tmp), nrow(xsand))
-    expect_equal(ncol(tmp), N + 1)
+    expect_identical(nrow(tmp), nrow(xsand))
+    expect_identical(ncol(tmp), N + 1L)
 
     if (il %in% c(0, N)) {
       # Adding a new shallowest or deepest layer carries existing values forward
-      expect_equal(tmp[, ilt + 1], xsand[, ilt + 1])
-      expect_equal(tmp[, ilt + 2], xsand[, ilt + 1])
+      expect_identical(tmp[, ilt + 1], xsand[, ilt + 1])
+      expect_identical(tmp[, ilt + 2], xsand[, ilt + 1])
 
     } else {
       # Check that interpolated values are in-between previous values
@@ -64,13 +64,14 @@ test_that("add_soil_layer", {
       method = "exhaust"
     )
 
-    expect_equal(nrow(tmp), nrow(xtrco))
-    expect_equal(ncol(tmp), N + 1)
+    expect_identical(nrow(tmp), nrow(xtrco))
+    expect_identical(ncol(tmp), N + 1L)
 
     # Check that sum of exhausted values equals the previous value
     expect_equal(
       apply(tmp[, (ilt + 1):(ilt + 2)], 1, sum),
-      xtrco[, ilt + 1]
+      xtrco[, ilt + 1],
+      tolerance = sqrt(.Machine[["double.eps"]])
     )
 
     # Check that exhausted values are larger than 0 and smaller then previously
@@ -140,7 +141,7 @@ test_that("dissolve_soil_layer", {
         )
       )
 
-      expect_equal(tmp, xsand)
+      expect_identical(tmp, xsand)
 
     } else {
 
@@ -152,8 +153,8 @@ test_that("dissolve_soil_layer", {
         method = "interpolate"
       )
 
-      expect_equal(nrow(tmp), nrow(xsand))
-      expect_equal(ncol(tmp), N - 1)
+      expect_identical(nrow(tmp), nrow(xsand))
+      expect_identical(ncol(tmp), N - 1L)
 
       # Check that interpolated values are in-between previous values
       expect_true(
@@ -173,11 +174,11 @@ test_that("dissolve_soil_layer", {
         method = "exhaust"
       )
 
-      expect_equal(nrow(tmp), nrow(xtrco))
-      expect_equal(ncol(tmp), N - 1)
+      expect_identical(nrow(tmp), nrow(xtrco))
+      expect_identical(ncol(tmp), N - 1L)
 
       # Check that sum of exhausted values equals the previous value
-      expect_equal(
+      expect_identical(
         tmp[, il],
         apply(xtrco[, il:(il + 1)], 1, sum)
       )
@@ -288,8 +289,78 @@ test_that("update_soil_profile", {
       )
 
       expect_false(new_soils2[["updated"]])
-      expect_equal(new_soils2[["soil_layers"]], new_soils[["soil_layers"]])
-      expect_equal(new_soils2[["soil_data"]], new_soils[["soil_data"]])
+      expect_identical(new_soils2[["soil_layers"]], new_soils[["soil_layers"]])
+      expect_identical(new_soils2[["soil_data"]], new_soils[["soil_data"]])
     }
+  }
+})
+
+
+test_that("reshape_soilproperties", {
+  var_soilproperties <- c("db", "fsand", "fclay")
+
+  x_wide <- data.frame(
+    location = c("SiteA", "SiteB"),
+    db_L1 = c(1.5, 1.6),
+    fsand_L1 = c(0.7, 0.2),
+    fclay_L1 = c(0.1, 0.2),
+    db_L2 = c(1.6, 1.7),
+    fsand_L2 = c(0.75, 0.3),
+    fclay_L2 = c(0.1, 0.15),
+    stringsAsFactors = FALSE
+  )
+
+
+  for (k in seq_len(nrow(x_wide))) {
+    x_wide_used <- x_wide[seq_len(k), , drop = FALSE]
+
+    #--- Check reshaping from wide to long
+    x_long <- reshape_soilproperties_to_long(
+      x_wide_used,
+      type_to = "long",
+      id_site = "location",
+      soilproperties = var_soilproperties
+    )
+    expect_s3_class(x_long, "data.frame")
+    expect_named(x_long, c("location", "soillayer", "variable", "value"))
+
+
+    #--- Check inversion from long back to wide
+    x_wide_from_long <- reshape_soilproperties_to_wide(
+      x_long,
+      type_from = "long",
+      id_site = "location",
+      soilproperties = var_soilproperties
+    )
+    expect_equal(
+      x_wide_from_long,
+      x_wide_used,
+      ignore_attr = "reshapeWide"
+    )
+
+
+    #--- Check reshaping from wide to semi-long
+    x_semilong <- reshape_soilproperties_to_long(
+      x_wide_used,
+      type_to = "long_by_properties",
+      id_site = "location",
+      soilproperties = var_soilproperties
+    )
+    expect_s3_class(x_semilong, "data.frame")
+    expect_named(x_semilong, c("location", "soillayer", var_soilproperties))
+
+
+    #--- Check inversion from semi-long back to wide
+    x_wide_from_semilong <- reshape_soilproperties_to_wide(
+      x_semilong,
+      type_from = "long_by_properties",
+      id_site = "location",
+      soilproperties = var_soilproperties
+    )
+    expect_equal(
+      x_wide_from_semilong,
+      x_wide_used,
+      ignore_attr = "reshapeWide"
+    )
   }
 })

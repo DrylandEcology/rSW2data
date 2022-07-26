@@ -16,9 +16,12 @@
 has_NAs_pooled_at_depth <- function(x) {
   stopifnot(!is.null(dim(x)))
 
-  sapply(
+  vapply(
     apply(x, 1, function(dat) rle(is.na(dat))),
-    function(dat) length(dat$values) <= 2 && dat$values[length(dat$values)]
+    function(dat) {
+      length(dat[["values"]]) <= 2 && dat[["values"]][length(dat[["values"]])]
+    },
+    FUN.VALUE = NA
   )
 }
 
@@ -123,7 +126,7 @@ check_depth_table <- function(table_depths, soil_depth, n_layers) {
     FUN = function(x) {
       if (sum(x) > 0) {
         tmp <- rle(x)
-        sum(tmp[["values"]]) == 1 && tmp[["values"]][1]
+        sum(tmp[["values"]]) == 1 && tmp[["values"]][[1]]
 
       } else {
         TRUE # nosoil
@@ -278,7 +281,11 @@ check_texture_table <- function(
   vars_notzero = NULL
 ) {
 
-  tmp <- sapply(vars, function(var) sum(grepl(var, colnames(table_texture))))
+  tmp <- vapply(
+    vars,
+    function(var) sum(grepl(var, colnames(table_texture))),
+    FUN.VALUE = NA_integer_
+  )
   if (any(tmp == 0) || any(diff(tmp) > 0)) {
     stop("Requested `vars` not available in `table_texture`.")
   }
@@ -295,9 +302,10 @@ check_texture_table <- function(
 
   # Find zero values
   if (!is.null(vars_notzero)) {
-    tmp <- sapply(
+    tmp <- vapply(
       vars_notzero,
-      function(var) sum(grepl(var, colnames(table_texture)))
+      function(var) sum(grepl(var, colnames(table_texture))),
+      FUN.VALUE = NA_integer_
     )
 
     if (any(tmp == 0) || any(diff(tmp) > 0)) {
@@ -308,7 +316,7 @@ check_texture_table <- function(
       data = table_texture,
       n_layers = n_layers,
       vars = vars_notzero,
-      fun = function(x) abs(x) < sqrt(.Machine$double.eps)
+      fun = function(x) abs(x) < sqrt(.Machine[["double.eps"]])
     )
 
     res_zero <- aggregate_soillayer_condition(list_zeros, n_layers)
@@ -344,8 +352,8 @@ check_soillayer_condition <- function(data, n_layers, vars, fun) {
       function(x) {
         n <- length(x) - 1
         tmp <- rep(NA, n)
-        if (is.finite(x[1])) {
-          ids <- seq_len(min(n, x[1]))
+        if (is.finite(x[[1]])) {
+          ids <- seq_len(min(n, x[[1]]))
           tmp[ids] <- fun(x[1 + ids])
         }
         tmp
@@ -367,9 +375,10 @@ aggregate_soillayer_condition <- function(x, n_layers) {
   res <- list()
 
   # Number of conditioned values per site
-  res[["cond_N"]] <- sapply(
+  res[["cond_N"]] <- vapply(
     x,
-    function(x) apply(x, 1, sum, na.rm = TRUE)
+    function(x) apply(x, 1, sum, na.rm = TRUE),
+    FUN.VALUE = rep(NA_real_, nrow(x[[1]]))
   )
 
   res[["is_cond_anylayer"]] <- res[["cond_N"]] > 0

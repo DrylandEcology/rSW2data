@@ -38,7 +38,7 @@ getLayersWidth <- function(layers_depth) {
 #'
 #' @export
 adjustLayer_byImp <- function(depths, imp_depth, sdepths) {
-  if (any(imp_depth < depths[1])) {
+  if (any(imp_depth < depths[[1]])) {
     depths <- imp_depth
     if (length(sdepths) >= 2) {
       tmp <- findInterval(imp_depth, sdepths)
@@ -48,8 +48,8 @@ adjustLayer_byImp <- function(depths, imp_depth, sdepths) {
         c(imp_depth, sdepths[tmp + 1])
       }
     }
-  } else if (any(imp_depth < depths[2])) {
-    depths <- c(depths[1], imp_depth)
+  } else if (any(imp_depth < depths[[2]])) {
+    depths <- c(depths[[1]], imp_depth)
   }
 
   depths
@@ -210,14 +210,14 @@ add_soil_layer <- function(
   if (!is.matrix(x)) {
     x <- as.matrix(x)
   }
-  ncols <- dim(x)[2]
+  ncols <- dim(x)[[2]]
 
 
   #--- Determine weights based on depth profile
   il <- findInterval(target_cm, depths_cm)
 
   w <- if (il == 0) {
-    c(target_cm, depths_cm[1] - target_cm)
+    c(target_cm, depths_cm[[1]] - target_cm)
 
   } else if (il >= length(depths_cm)) {
     tmp <- depths_cm[length(depths_cm)]
@@ -243,7 +243,7 @@ add_soil_layer <- function(
 
     if (method == "interpolate") {
       if (il > 0) {
-        x[, il + 1] <- (x[, il] * w[1] + x[, il + 2] * w[2]) / w_sum
+        x[, il + 1] <- (x[, il] * w[[1]] + x[, il + 2] * w[[2]]) / w_sum
 
       } else {
         # Add layer at a more shallow depth than any existing layer
@@ -251,8 +251,8 @@ add_soil_layer <- function(
       }
 
     } else if (method == "exhaust") {
-      x[, il + 1] <- x[, il + 2] * w[1] / w_sum
-      x[, il + 2] <- x[, il + 2] * w[2] / w_sum
+      x[, il + 1] <- x[, il + 2] * w[[1]] / w_sum
+      x[, il + 2] <- x[, il + 2] * w[[2]] / w_sum
     }
 
   } else if (ncols == il) {
@@ -264,8 +264,8 @@ add_soil_layer <- function(
 
     } else if (method == "exhaust") {
       # First calculate x[, il + 1] so that x[, il] maintains previous value
-      x[, il + 1] <- x[, il] * w[2] / w_sum
-      x[, il] <- x[, il] * w[1] / w_sum
+      x[, il + 1] <- x[, il] * w[[2]] / w_sum
+      x[, il] <- x[, il] * w[[1]] / w_sum
     }
   }
 
@@ -293,7 +293,7 @@ dissolve_soil_layer <- function(
 
   if (!is.matrix(x)) x <- data.matrix(x)
 
-  ncols <- dim(x)[2]
+  ncols <- dim(x)[[2]]
 
   il <- which(target_cm == depths_cm)
 
@@ -314,7 +314,7 @@ dissolve_soil_layer <- function(
         c(target_cm - depths_cm[il - 1], depths_cm[il + 1] - target_cm)
       }
 
-      xnew[, il] <- (x[, il] * w[1] + x[, il + 1] * w[2]) / sum(w)
+      xnew[, il] <- (x[, il] * w[[1]] + x[, il + 1] * w[[2]]) / sum(w)
 
     } else if (method == "exhaust") {
       # sum of previous layers
@@ -325,11 +325,13 @@ dissolve_soil_layer <- function(
 
   } else {
     #--- Cannot remove the deepest (or only) soil layer
+    # nolint start: nonportable_path_linter.
     if (ncols == 1) {
       warning("Cannot remove/combine the only soil layer.")
     } else {
       warning("Cannot remove/combine the deepest soil layer.")
     }
+    # nolint end
   }
 
   x
@@ -445,18 +447,27 @@ update_soil_profile <- function(
   # Variables for which to update soil profile
   if (length(variables) == 0) {
     # Assumption: colnames of `soil_data` are formatted as `var_Lx`
-    variables <- unique(sapply(
-      X = strsplit(cns_data, split = "_", fixed = TRUE),
-      FUN = function(x) paste0(x[-length(x)], collapse = "_")
-    ))
+    variables <- unique(
+      vapply(
+        X = strsplit(cns_data, split = "_", fixed = TRUE),
+        FUN = function(x) paste0(x[-length(x)], collapse = "_"),
+        FUN.VALUE = NA_character_
+      )
+    )
 
   } else {
-    stopifnot(sapply(variables, function(x) any(grepl(x, cns_data))))
+    stopifnot(
+      vapply(variables, function(x) any(grepl(x, cns_data)), FUN.VALUE = NA)
+    )
   }
 
   # Determine how to add different soil variables
   # - variables whose values will be exhausted (all others are interpolated)
-  tmp <- sapply(vars_exhaust, function(x) any(grepl(x, cns_data)))
+  tmp <- vapply(
+    vars_exhaust,
+    function(x) any(grepl(x, cns_data)),
+    FUN.VALUE = NA
+  )
   vars_exhaust <- vars_exhaust[tmp]
 
 
@@ -475,7 +486,7 @@ update_soil_profile <- function(
 
 
   #--- Identify layers and groups of sites with the same profile (soil layers)
-  ids_layers <- seq_len(dim(soil_layers)[2])
+  ids_layers <- seq_len(dim(soil_layers)[[2]])
   avail_sl_ids <- apply(soil_layers, 1, paste0, collapse = "x")
   layer_sets <- unique(avail_sl_ids)
   N_sets <- length(layer_sets)
@@ -524,7 +535,7 @@ update_soil_profile <- function(
 
       # --- Add requested soil layers
       # Identify which requested layers need to be added
-      ldset_prev <- stats::na.exclude(soil_layers[which(il_set)[1], ])
+      ldset_prev <- stats::na.exclude(soil_layers[which(il_set)[[1]], ])
       ldset <- ldset_prev
       req_sd_toadd <- setdiff(requested_soil_layers, ldset)
 
@@ -709,11 +720,201 @@ update_soil_profile <- function(
 #' @export
 identify_soillayers <- function(depths, sdepth) {
   it <- findInterval(depths, sdepth)
-  if (any(is.na(it))) {
+  if (anyNA(it)) {
     as.integer(na.exclude(it))
   } else if (length(it) > 1 && diff(it) > 0) {
-    (1 + it[1]):(it[2])
+    (1 + it[[1]]):(it[[2]])
   } else {
-    it[1]
+    it[[1]]
   }
+}
+
+#' Reshape soil properties between wide format and (semi-)long format
+#'
+#' @param x_wide A data frame in wide format (see details).
+#' @param x_long A data frame in long or semi-long format (see details).
+#' @param type_to A character string. Determines if output format
+#'  is long or semi-long (see details).
+#' @param type_from A character string. Describes if format of `x_long` is
+#'   long or semi-long.
+#' @param id_site A character string. Column name of `x` that
+#'   contains unique site names.
+#' @param id_soillayer A character string. Name of the column that will
+#'   be created to contain soil layer numbers.
+#' @param sep_soillayer A character string. See details.
+#' @param soilproperties A character vector. Names of soil properties;
+#'   see details.
+#' @param id_values A character string. Name of the column in long format
+#'   that contains values of soil properties.
+#' @param id_property A character string. Name of the column in long format
+#'   that contains names of soil properties.
+#'
+#' @return
+#'  * [reshape_soilproperties_to_long()] returns
+#'    * a data frame in long format if `type_to` is `"long"`
+#'    * a data frame in semi-long format if `type_to` is `"long_by_properties"`.
+#'  * [reshape_soilproperties_to_long()] returns a data frame in wide format.
+#'
+#' @seealso [stats::reshape()]
+#'
+#' @section Details:
+#' Formats of soil-property data frames
+#'   * `"wide"`
+#'     * each row represents a unique site
+#'       (encoded by column `id_site`)
+#'     * besides `id_site`, columns represent soil properties
+#'       at different soil layers and column names follow the pattern
+#'       `<soilproperties><sep_soillayer><soil layer id>`, e.g.,
+#'       `db_L1`, `fsand_L1`, `fclay_L1`, `fcoarse_L1`, `db_L2`, `fsand_L2`, ...
+#'   * `"semi-long"` (or `"long_by_properties"`)
+#'     * each row represents a unique combination of sites and soil layers
+#'       (encoded by columns `id_site` and `id_soillayer`)
+#'     * columns are `id_site`, `id_soillayer`, `soilproperties`, e.g.,
+#'       `site`, `soillayer`, `db`, `fsand`, `fclay`, `fcoarse`
+#'   * `"long"`
+#'     * each row represents a unique observation, e.g.,
+#'       `SiteA`, 1, `fsand`, 0.70
+#'     * columns are `id_site`, `id_soillayer`, `id_property`, `id_values`
+#'
+#'
+#' @examples
+#' x_wide <- data.frame(
+#'   location = c("SiteA", "SiteB"),
+#'   db_L1 = c(1.5, 1.6),
+#'   fsand_L1 = c(0.7, 0.2),
+#'   fclay_L1 = c(0.1, 0.2),
+#'   db_L2 = c(1.6, 1.7),
+#'   fsand_L2 = c(0.75, 0.3),
+#'   fclay_L2 = c(0.1, 0.15)
+#' )
+#'
+#' x_long <- reshape_soilproperties_to_long(
+#'   x_wide,
+#'   type_to = "long",
+#'   id_site = "location",
+#'   soilproperties = c("db", "fsand", "fclay")
+#' )
+#' x_wide_from_long <- reshape_soilproperties_to_wide(
+#'   x_long,
+#'   type_from = "long",
+#'   id_site = "location",
+#'   soilproperties = c("db", "fsand", "fclay")
+#' )
+#' all.equal(x_wide_from_long, x_wide, check.attributes = FALSE)
+#'
+#' x_semilong <- reshape_soilproperties_to_long(
+#'   x_wide,
+#'   type_to = "long_by_properties",
+#'   id_site = "location",
+#'   soilproperties = c("db", "fsand", "fclay")
+#' )
+#' x_wide_from_semilong <- reshape_soilproperties_to_wide(
+#'   x_semilong,
+#'   type_from = "long_by_properties",
+#'   id_site = "location",
+#'   soilproperties = c("db", "fsand", "fclay")
+#' )
+#' all.equal(x_wide_from_semilong, x_wide, check.attributes = FALSE)
+#'
+#' @md
+#' @name reshape_soilproperties
+NULL
+
+#' @rdname reshape_soilproperties
+#'
+#' @export
+reshape_soilproperties_to_long <- function(
+  x_wide,
+  type_to = c("long", "long_by_properties"),
+  id_site = "site",
+  id_soillayer = "soillayer",
+  sep_soillayer = "_L",
+  soilproperties = c("db", "fsand", "fclay", "fcoarse"),
+  id_values = "value",
+  id_property = "variable"
+) {
+  type_to <- match.arg(type_to)
+
+  cns <- colnames(x_wide)
+  ids <- lapply(
+    soilproperties,
+    function(x) grep(x, cns, value = TRUE)
+  )
+  v_names <- if (is.null(names(ids))) {
+    soilproperties
+  } else {
+    names(ids)
+  }
+
+  var_drop <- cns[!(cns %in% c(id_site, unlist(ids)))]
+
+  tmp <- stats::reshape(
+    data = x_wide,
+    direction = "long",
+    idvar = id_site,
+    drop = if (length(var_drop) > 0) var_drop,
+    varying = ids,
+    v.names = v_names,
+    sep = sep_soillayer,
+    timevar = id_soillayer
+  )
+
+  res <- switch(
+    EXPR = type_to,
+    long_by_properties = tmp,
+    long = stats::reshape(
+      data = tmp,
+      direction = "long",
+      idvar = c(id_site, id_soillayer),
+      varying = list(v_names),
+      v.names = id_values,
+      sep = "",
+      timevar = id_property,
+      times = v_names
+    )
+  )
+
+  rownames(res) <- NULL
+  res
+}
+
+
+#' @rdname reshape_soilproperties
+#'
+#' @export
+reshape_soilproperties_to_wide <- function(
+  x_long,
+  type_from = c("long", "long_by_properties"),
+  id_site = "site",
+  id_soillayer = "soillayer",
+  sep_soillayer = "_L",
+  soilproperties = c("db", "fsand", "fclay", "fcoarse"),
+  id_values = "value",
+  id_property = "variable"
+) {
+  type_from <- match.arg(type_from)
+
+  res <- if (type_from == "long") {
+    stats::reshape(
+      data = x_long[, c(id_site, id_soillayer, id_values, id_property)],
+      direction = "wide",
+      idvar = c(id_site, id_soillayer),
+      timevar = id_property,
+      v.names = id_values,
+      varying = list(soilproperties)
+    )
+  } else if (type_from == "long_by_properties") {
+    x_long
+  }
+
+  res <- stats::reshape(
+    data = res[, c(id_site, id_soillayer, soilproperties)],
+    direction = "wide",
+    idvar = id_site,
+    timevar = id_soillayer,
+    sep = sep_soillayer
+  )
+  rownames(res) <- NULL
+
+  res
 }
