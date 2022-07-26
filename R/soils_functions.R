@@ -711,7 +711,7 @@ update_soil_profile <- function(
 #' @export
 identify_soillayers <- function(depths, sdepth) {
   it <- findInterval(depths, sdepth)
-  if (any(is.na(it))) {
+  if (anyNA(it)) {
     as.integer(na.exclude(it))
   } else if (length(it) > 1 && diff(it) > 0) {
     (1 + it[[1]]):(it[[2]])
