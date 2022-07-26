@@ -194,7 +194,7 @@ simTiming_ForEachUsedTimeUnit <- function(
         # add previous calendar year for shifted days of first simulation year
         rep(useyrs[[1]] - 1, times = tmp2),
         # remove a corresponding number of days at end of simulation period
-        res[["year_ForEachUsedDay"]][-((tmp1 - tmp2 + 1):tmp1)] # nolint
+        res[["year_ForEachUsedDay"]][-((tmp1 - tmp2 + 1):tmp1)]
       )
       res[["useyrs_NSadj"]] <- unique(res[["year_ForEachUsedDay_NSadj"]])
       res[["no.useyr_NSadj"]] <- length(res[["useyrs_NSadj"]])
@@ -218,7 +218,7 @@ simTiming_ForEachUsedTimeUnit <- function(
     FirstDOY_WaterYear <- if (tmp) 274 else 92
 
     tmp <- res[["doy_ForEachUsedDay_NSadj"]] > FirstDOY_WaterYear
-    res$year_ForEachUsedDay_NSadj_WaterYearAdj <- # nolint
+    res[["year_ForEachUsedDay_NSadj_WaterYearAdj"]] <-
       res[["year_ForEachUsedDay_NSadj"]] + as.integer(tmp)
 
     if (isTRUE(use_doy_range)) {

@@ -663,8 +663,10 @@ calc_BareSoilEvapCoefs <- function(
 init_soiltemperature <- function(layers_depth, Tsoil_upper, Tsoil_const,
   depth_Tsoil_const = 990) {
 
-  sl <- c(0, depth_Tsoil_const) # nolint
-  st <- c(Tsoil_upper, Tsoil_const) #nolint
+  # nolint start: object_usage_linter.
+  sl <- c(0, depth_Tsoil_const)
+  st <- c(Tsoil_upper, Tsoil_const)
+  # nolint end
 
   stats::predict(stats::lm(st ~ sl), data.frame(sl = layers_depth))
 }
