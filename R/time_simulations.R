@@ -74,11 +74,12 @@ setup_time_simulation_run <- function(
   sim_time[["endyr"]] <- as.integer(sim_time[["endyr"]])
 
   stopifnot(
-    sapply(
+    vapply(
       c("spinup_N", "simstartyr", "startyr", "endyr"),
       function(x) {
         !is.null(sim_time[[x]]) && is.finite(sim_time[[x]])
-      }
+      },
+      FUN.VALUE = NA
     )
   )
 

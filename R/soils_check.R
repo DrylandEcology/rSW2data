@@ -16,9 +16,12 @@
 has_NAs_pooled_at_depth <- function(x) {
   stopifnot(!is.null(dim(x)))
 
-  sapply(
+  vapply(
     apply(x, 1, function(dat) rle(is.na(dat))),
-    function(dat) length(dat[["values"]]) <= 2 && dat[["values"]][length(dat[["values"]])]
+    function(dat) {
+      length(dat[["values"]]) <= 2 && dat[["values"]][length(dat[["values"]])]
+    },
+    FUN.VALUE = NA
   )
 }
 
@@ -278,7 +281,11 @@ check_texture_table <- function(
   vars_notzero = NULL
 ) {
 
-  tmp <- sapply(vars, function(var) sum(grepl(var, colnames(table_texture))))
+  tmp <- vapply(
+    vars,
+    function(var) sum(grepl(var, colnames(table_texture))),
+    FUN.VALUE = NA_integer_
+  )
   if (any(tmp == 0) || any(diff(tmp) > 0)) {
     stop("Requested `vars` not available in `table_texture`.")
   }
@@ -295,9 +302,10 @@ check_texture_table <- function(
 
   # Find zero values
   if (!is.null(vars_notzero)) {
-    tmp <- sapply(
+    tmp <- vapply(
       vars_notzero,
-      function(var) sum(grepl(var, colnames(table_texture)))
+      function(var) sum(grepl(var, colnames(table_texture))),
+      FUN.VALUE = NA_integer_
     )
 
     if (any(tmp == 0) || any(diff(tmp) > 0)) {
@@ -367,9 +375,10 @@ aggregate_soillayer_condition <- function(x, n_layers) {
   res <- list()
 
   # Number of conditioned values per site
-  res[["cond_N"]] <- sapply(
+  res[["cond_N"]] <- vapply(
     x,
-    function(x) apply(x, 1, sum, na.rm = TRUE)
+    function(x) apply(x, 1, sum, na.rm = TRUE),
+    FUN.VALUE = rep(NA_real_, nrow(x[[1]]))
   )
 
   res[["is_cond_anylayer"]] <- res[["cond_N"]] > 0

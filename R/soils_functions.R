@@ -447,18 +447,27 @@ update_soil_profile <- function(
   # Variables for which to update soil profile
   if (length(variables) == 0) {
     # Assumption: colnames of `soil_data` are formatted as `var_Lx`
-    variables <- unique(sapply(
-      X = strsplit(cns_data, split = "_", fixed = TRUE),
-      FUN = function(x) paste0(x[-length(x)], collapse = "_")
-    ))
+    variables <- unique(
+      vapply(
+        X = strsplit(cns_data, split = "_", fixed = TRUE),
+        FUN = function(x) paste0(x[-length(x)], collapse = "_"),
+        FUN.VALUE = NA_character_
+      )
+    )
 
   } else {
-    stopifnot(sapply(variables, function(x) any(grepl(x, cns_data))))
+    stopifnot(
+      vapply(variables, function(x) any(grepl(x, cns_data)), FUN.VALUE = NA)
+    )
   }
 
   # Determine how to add different soil variables
   # - variables whose values will be exhausted (all others are interpolated)
-  tmp <- sapply(vars_exhaust, function(x) any(grepl(x, cns_data)))
+  tmp <- vapply(
+    vars_exhaust,
+    function(x) any(grepl(x, cns_data)),
+    FUN.VALUE = NA
+  )
   vars_exhaust <- vars_exhaust[tmp]
 
 
