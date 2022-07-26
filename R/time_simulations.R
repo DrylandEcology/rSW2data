@@ -53,15 +53,25 @@ setup_time_simulation_run <- function(
   sim_time = list(spinup_N = NULL, simstartyr = NA, startyr = NULL, endyr = NA)
 ) {
   if (is.null(sim_time[["simstartyr"]])) {
+    sim_time[["startyr"]] <- as.integer(sim_time[["startyr"]])
+    sim_time[["spinup_N"]] <- as.integer(sim_time[["spinup_N"]])
     sim_time[["simstartyr"]] <- sim_time[["startyr"]] - sim_time[["spinup_N"]]
+
   } else if (is.null(sim_time[["startyr"]])) {
+    sim_time[["simstartyr"]] <- as.integer(sim_time[["simstartyr"]])
+    sim_time[["spinup_N"]] <- as.integer(sim_time[["spinup_N"]])
     sim_time[["startyr"]] <- getStartYear(
       sim_time[["simstartyr"]],
       sim_time[["spinup_N"]]
     )
+
   } else if (is.null(sim_time[["spinup_N"]])) {
+    sim_time[["startyr"]] <- as.integer(sim_time[["startyr"]])
+    sim_time[["simstartyr"]] <- as.integer(sim_time[["simstartyr"]])
     sim_time[["spinup_N"]] <- sim_time[["startyr"]] - sim_time[["simstartyr"]]
   }
+
+  sim_time[["endyr"]] <- as.integer(sim_time[["endyr"]])
 
   stopifnot(
     sapply(
@@ -74,15 +84,15 @@ setup_time_simulation_run <- function(
 
 
   tmp <- ISOdate(sim_time[["startyr"]], 1, 1, tz = "UTC")
-  discarddy <- as.numeric(
+  discarddy <- as.integer(
     tmp - ISOdate(sim_time[["simstartyr"]], 1, 1, tz = "UTC")
   )
 
   sim_time[["useyrs"]] <- sim_time[["startyr"]]:sim_time[["endyr"]]
 
-  sim_time[["no.useyr"]] <- sim_time[["endyr"]] - sim_time[["startyr"]] + 1
-  sim_time[["no.usemo"]] <- sim_time[["no.useyr"]] * 12
-  sim_time[["no.usedy"]] <- 1 + as.numeric(
+  sim_time[["no.useyr"]] <- sim_time[["endyr"]] - sim_time[["startyr"]] + 1L
+  sim_time[["no.usemo"]] <- sim_time[["no.useyr"]] * 12L
+  sim_time[["no.usedy"]] <- 1L + as.integer(
     ISOdate(sim_time[["endyr"]], 12, 31, tz = "UTC") - tmp
   )
 
@@ -90,7 +100,7 @@ setup_time_simulation_run <- function(
     sim_time[["spinup_N"]] +
     seq_len(sim_time[["no.useyr"]])
   sim_time[["index.usemo"]] <-
-    sim_time[["spinup_N"]] * 12 +
+    sim_time[["spinup_N"]] * 12L +
     seq_len(sim_time[["no.usemo"]])
   sim_time[["index.usedy"]] <- discarddy + seq_len(sim_time[["no.usedy"]])
 
