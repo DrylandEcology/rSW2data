@@ -3,13 +3,13 @@
 input_sim_time <- list(
   # test object 1: startyr is leap year
   startyr_leapyear = list(
-    useyrs = yrs <- 1979:2010,
+    useyrs = yrs <- 1979:2010, # nolint: implicit_assignment_linter.
     no.usedy = length(rSW2utils::days_in_years(yrs[[1]], yrs[[length(yrs)]])),
     no.usemo = length(yrs) * 12L
   ),
   # test object 2: startyr is not leap year
   startyr_noleapyear = list(
-    useyrs = yrs <- 1969:2000,
+    useyrs = yrs <- 1969:2000, # nolint: implicit_assignment_linter.
     no.usedy = length(rSW2utils::days_in_years(yrs[[1]], yrs[[length(yrs)]])),
     no.usemo = length(yrs) * 12L
   )
@@ -46,7 +46,9 @@ test_that("Obtain time information", {
   # Simulation time aggregation lists
   st2 <- list(N = list(), S = list())
 
+
   for (k in seq_along(input_sim_time)) {
+    # nolint start: implicit_assignment_linter.
     expect_silent(
       st2[["N"]] <- simTiming_ForEachUsedTimeUnit(
         useyrs = input_sim_time[[k]][["useyrs"]],
@@ -60,6 +62,7 @@ test_that("Obtain time information", {
         latitude = -90
       )
     )
+    # nolint end.
 
 
     for (h in seq_along(st2)) {
@@ -108,23 +111,25 @@ test_that("Obtain time information", {
 
 
 test_that("Check years", {
+  # nolint start: implicit_assignment_linter.
   expect_silent(
     x <- update_requested_years(2000, 2010, 1950, 2010, verbose = FALSE)
   )
   expect_identical(x[["start_year"]], 2000L)
   expect_identical(x[["end_year"]], 2010L)
 
-  expect_output(
+  expect_message(
     x <- update_requested_years(1940, 2010, 1950, 2010, verbose = TRUE),
     regexp = "requested start year"
   )
   expect_identical(x[["start_year"]], 1950L)
   expect_identical(x[["end_year"]], 2010L)
 
-  expect_output(
+  expect_message(
     x <- update_requested_years(2000, 2020, 1950, 2010, verbose = TRUE),
     regexp = "requested end year"
   )
   expect_identical(x[["start_year"]], 2000L)
   expect_identical(x[["end_year"]], 2010L)
+  # nolint end.
 })

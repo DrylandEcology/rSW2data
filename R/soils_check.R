@@ -103,7 +103,7 @@ check_depth_table <- function(table_depths, soil_depth, n_layers) {
 
 
   #--- Check that number of soil layers agree with existing layers
-  calc_n_layers <- apply(has_layer, 1, sum)
+  calc_n_layers <- rowSums(has_layer)
 
   if (!missing(n_layers)) {
     tmp <- all.equal(n_layers, calc_n_layers, check.attributes = FALSE)
@@ -154,11 +154,13 @@ check_depth_table <- function(table_depths, soil_depth, n_layers) {
     msg[["sl_monotonic"]] <- attr(sl_monotonic, "condition")[["message"]]
   }
 
+
   # Return TRUE if all checks pass or issue warning and return list of checks
   if (length(msg) > 0) {
     warning(
       "Soil depth table has problems: \n",
-      paste("\t", names(msg), "=", msg, collapse = ";\n")
+      paste("\t", names(msg), "=", msg, collapse = ";\n"),
+      call. = FALSE
     )
 
     msg
@@ -287,7 +289,7 @@ check_texture_table <- function(
     FUN.VALUE = NA_integer_
   )
   if (any(tmp == 0) || any(diff(tmp) > 0)) {
-    stop("Requested `vars` not available in `table_texture`.")
+    stop("Requested `vars` not available in `table_texture`.", call. = FALSE)
   }
 
   # Find missing values
@@ -309,7 +311,10 @@ check_texture_table <- function(
     )
 
     if (any(tmp == 0) || any(diff(tmp) > 0)) {
-      stop("Requested `vars_notzero` not available in `table_texture`.")
+      stop(
+        "Requested `vars_notzero` not available in `table_texture`.",
+        call. = FALSE
+      )
     }
 
     list_zeros <- check_soillayer_condition(
@@ -376,8 +381,9 @@ aggregate_soillayer_condition <- function(x, n_layers) {
 
   # Number of conditioned values per site
   res[["cond_N"]] <- vapply(
-    x,
-    function(x) apply(x, 1, sum, na.rm = TRUE),
+    X = x,
+    FUN = rowSums,
+    na.rm = TRUE,
     FUN.VALUE = rep(NA_real_, nrow(x[[1]]))
   )
 
@@ -394,11 +400,13 @@ aggregate_soillayer_condition <- function(x, n_layers) {
 
 
   res[["ids_sites_cond_anylayer"]] <- which(
-    apply(res[["is_cond_anylayer"]], 1, function(x) any(x))
+    apply(X = res[["is_cond_anylayer"]], MARGIN = 1L, FUN = any)
   )
 
   res[["ids_sites_cond_alllayers"]] <- which(
-    apply(res[["is_cond_pctlayer"]], 1, function(x) any(x == 1))
+    apply(
+      X = res[["is_cond_pctlayer"]], MARGIN = 1L, FUN = function(x) any(x == 1)
+    )
   )
 
   res[["ids_sites_cond_somelayers"]] <- setdiff(

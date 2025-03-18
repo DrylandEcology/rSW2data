@@ -298,7 +298,7 @@ dissolve_soil_layer <- function(
   il <- which(target_cm == depths_cm)
 
   if (length(il) != 1) {
-    stop("Unique soil layer to dissolve could not be located.")
+    stop("Unique soil layer to dissolve could not be located.", call. = FALSE)
   }
 
   if (ncols > 1 && il < ncols) {
@@ -318,7 +318,7 @@ dissolve_soil_layer <- function(
 
     } else if (method == "exhaust") {
       # sum of previous layers
-      xnew[, il] <- apply(x[, il:(il + 1), drop = FALSE], 1, sum)
+      xnew[, il] <- rowSums(x[, il:(il + 1L), drop = FALSE])
     }
 
     x <- xnew
@@ -326,12 +326,13 @@ dissolve_soil_layer <- function(
   } else {
     #--- Cannot remove the deepest (or only) soil layer
     # nolint start: nonportable_path_linter.
-    if (ncols == 1) {
-      warning("Cannot remove/combine the only soil layer.")
-    } else {
-      warning("Cannot remove/combine the deepest soil layer.")
-    }
+    msg <- paste(
+      "Cannot remove/combine the",
+      if (ncols == 1) "only" else "deepest",
+      "soil layer."
+    )
     # nolint end
+    warning(msg, call. = FALSE)
   }
 
   x
@@ -450,7 +451,7 @@ update_soil_profile <- function(
     variables <- unique(
       vapply(
         X = strsplit(cns_data, split = "_", fixed = TRUE),
-        FUN = function(x) paste0(x[-length(x)], collapse = "_"),
+        FUN = function(x) paste(x[-length(x)], collapse = "_"),
         FUN.VALUE = NA_character_
       )
     )
@@ -837,8 +838,10 @@ reshape_soilproperties_to_long <- function(
 
   cns <- colnames(x_wide)
   ids <- lapply(
-    soilproperties,
-    function(x) grep(x, cns, value = TRUE)
+    X = soilproperties,
+    FUN = grep,
+    x = cns,
+    value = TRUE
   )
   v_names <- if (is.null(names(ids))) {
     soilproperties

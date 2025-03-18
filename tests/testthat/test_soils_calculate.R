@@ -204,7 +204,7 @@ test_that("estimate_bulkdensity", {
 test_that("Bare-soil evaporation coefficients", {
   check_bsevap_coeffs <- function(bsevap_coeff, ld, md, Ns, Nl, info = NULL) {
     # Coeffs of each site sum to one
-    expect_identical(apply(bsevap_coeff, 1, sum), rep(1, Ns), info = info)
+    expect_identical(rowSums(bsevap_coeff), rep(1, Ns), info = info)
 
     # Coeffs are between 0 and 1
     expect_identical(

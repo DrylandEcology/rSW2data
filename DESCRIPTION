@@ -16,8 +16,8 @@ Imports:
     rSW2utils (>= 0.1.0)
 Suggests:
     testthat (>= 3.0.0),
-    spelling,
-    lintr (>= 3.0.0),
+    spelling (>= 2.1.0),
+    lintr (>= 3.2.0),
     covr,
     utils
 Remotes:
