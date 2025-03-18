@@ -2,8 +2,8 @@
 % Please edit documentation in R/rSW2data-package.R
 \docType{package}
 \name{rSW2data}
-\alias{rSW2data}
 \alias{rSW2data-package}
+\alias{rSW2data}
 \title{Package \pkg{rSW2data}: summary information}
 \description{
 Collection of functions to prepare and calculate input data for rSOILWAT2, rSFSW2, and rSFSTEP2 simulation experiments.
