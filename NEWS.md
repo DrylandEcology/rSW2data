@@ -1,3 +1,5 @@
+# rSW2data v0.1.5-9000
+
 # rSW2data v0.1.4
 * New `reshape_soilproperties_to_long()` and `reshape_soilproperties_to_wide()`
   reshape data frames containing soil properties between wide and (semi-) long
