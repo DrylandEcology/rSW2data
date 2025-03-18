@@ -18,8 +18,10 @@ test_that("check_depth_table", {
 
   # This illustrates the warnings
   expected_names <- c(
-    "soil_depth", "n_layers", "ids_sites_without_soils", "sl_1region",
-    "sl_monotonic"
+    "soil_depth", "ids_sites_mismatchedDepth", "n_layers",
+    "ids_sites_mismatchedLayerCount", "ids_sites_without_soils", "sl_1region",
+    "ids_sites_withDepthDiscontinuity", "sl_monotonic",
+    "ids_sites_withNonMonotonicDepths"
   )
 
   soil_checks1 <- suppressWarnings(check_depth_table(

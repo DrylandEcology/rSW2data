@@ -87,6 +87,8 @@ check_depth_table <- function(table_depths, soil_depth, n_layers) {
 
   has_layer <- !is.na(table_depths)
 
+  tol <- sqrt(.Machine[["double.eps"]])
+
   #--- Check soil depth
   calc_depth <- apply(
     X = table_depths,
@@ -98,7 +100,12 @@ check_depth_table <- function(table_depths, soil_depth, n_layers) {
 
   if (!missing(soil_depth)) {
     tmp <- all.equal(soil_depth, calc_depth, check.attributes = FALSE)
-    if (!isTRUE(tmp)) msg[["soil_depth"]] <- tmp
+    if (!isTRUE(tmp)) {
+      msg[["soil_depth"]] <- tmp
+      msg[["ids_sites_mismatchedDepth"]] <- unname(
+        which(abs(soil_depth - calc_depth) > tol)
+      )
+    }
   }
 
 
@@ -107,7 +114,12 @@ check_depth_table <- function(table_depths, soil_depth, n_layers) {
 
   if (!missing(n_layers)) {
     tmp <- all.equal(n_layers, calc_n_layers, check.attributes = FALSE)
-    if (!isTRUE(tmp)) msg[["n_layers"]] <- tmp
+    if (!isTRUE(tmp)) {
+      msg[["n_layers"]] <- tmp
+      msg[["ids_sites_mismatchedLayerCount"]] <- unname(
+        which(abs(n_layers - calc_n_layers) > tol)
+      )
+    }
   }
 
 
@@ -136,22 +148,28 @@ check_depth_table <- function(table_depths, soil_depth, n_layers) {
 
   if (!all(sl_1region) || anyNA(sl_1region)) {
     msg[["sl_1region"]] <- sl_1region
+    msg[["ids_sites_withDepthDiscontinuity"]] <- unname(which(!sl_1region))
   }
 
 
   #--- Check that soil layer depths are strictly monotonic increasing
-  sl_monotonic <- try(
-    rSW2utils::check_monotonic_increase(
-      x = table_depths,
-      strictly = TRUE,
-      fail = TRUE,
-      na.rm = TRUE
-    ),
-    silent = TRUE
+  sl_monotonic <- rSW2utils::check_monotonic_increase(
+    x = table_depths,
+    strictly = TRUE,
+    fail = FALSE,
+    na.rm = TRUE
   )
 
-  if (inherits(sl_monotonic, "try-error")) {
-    msg[["sl_monotonic"]] <- attr(sl_monotonic, "condition")[["message"]]
+  ids_nonmonotonic <- which(
+    apply(is.na(table_depths) != is.na(sl_monotonic), 1L, any)
+  )
+
+  if (length(ids_nonmonotonic) > 0L) {
+    msg[["sl_monotonic"]] <- paste(
+      "'check_monotonic_increase': data are not strictly monotonically",
+      "increasing in rows."
+    )
+    msg[["ids_sites_withNonMonotonicDepths"]] <- unname(ids_nonmonotonic)
   }
 
 
