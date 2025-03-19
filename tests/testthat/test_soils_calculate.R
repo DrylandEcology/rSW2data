@@ -109,6 +109,11 @@ test_that("impute_soils", {
     cbind(id = rep(2, 7), tmp)
   )
 
+  # Change id 2 values a bit
+  ir <- x1[["id"]] == 2L
+  ic <- c("coarse", "sand_pct", "clay_pct", "silt_pct")
+  x1[ir, ic] <- x1[ir, ic] + 5
+
   res1 <- suppressWarnings(impute_soils(
     x1,
     var_values = c("coarse", "sand_pct"),
