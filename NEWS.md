@@ -1,6 +1,8 @@
-# rSW2data v0.1.5-9000
-* `check_depth_table()` now returns for each implemented check
-  a vector of failing sites.
+# rSW2data v0.1.5
+* `check_depth_table()` now returns a vector of failing sites
+  for each implemented check.
+* Updated package infrastructure and dependency requirements including
+  `yaml` scripts for Github Actions, `lintr`, `spelling`, `roxygen2`.
 
 
 # rSW2data v0.1.4
