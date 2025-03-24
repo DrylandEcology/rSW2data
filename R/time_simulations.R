@@ -146,12 +146,10 @@ simTiming_ForEachUsedTimeUnit <- function(
   if (any(sim_tscales == "daily")) {
     tmp <- as.POSIXlt(rSW2utils::days_in_years(min(useyrs), max(useyrs)))
 
-    # nolint start: extraction_operator_linter.
     res[["doy_ForEachUsedDay"]] <- tmp$yday + 1
     res[["month_ForEachUsedDay"]] <- tmp$mon + 1
     res[["year_ForEachUsedDay"]] <-
       res[["year_ForEachUsedDay_NSadj"]] <- tmp$year + 1900
-    # nolint end
 
     if (latitude < 0 && account_NorthSouth) {
       #- Shift doys
@@ -162,9 +160,7 @@ simTiming_ForEachUsedTimeUnit <- function(
       # but, 1 Jan -> July 3/4): and instead of a day with doy = 366,
       # there are two with doy = 182
 
-      # nolint start: extraction_operator_linter.
       dshift <- as.POSIXlt(ISOdate(useyrs, 6, 30, tz = "UTC"))$yday + 1
-      # nolint end
 
       res[["doy_ForEachUsedDay_NSadj"]] <- unlist(lapply(
         seq_along(useyrs),
@@ -184,7 +180,7 @@ simTiming_ForEachUsedTimeUnit <- function(
       )
       res[["month_ForEachUsedDay_NSadj"]] <- 1 + strptime(
         tmp, format = "%Y-%j"
-      )$mon # nolint: extraction_operator_linter.
+      )$mon
 
       #- Shift years
       tmp1 <- length(res[["year_ForEachUsedDay"]])
@@ -310,11 +306,12 @@ update_requested_years <- function(
 ) {
   start_year <- if (start_year < has_start_year) {
     if (verbose) {
-      print(paste0(
+      msg <- paste0(
         shQuote(temp_call), ": covers years ", has_start_year, "-",
         has_end_year, "; requested start year ", start_year, " was changed to ",
         has_start_year, "."
-      ))
+      )
+      message(msg)
     }
     as.integer(has_start_year)
   } else {
@@ -323,11 +320,12 @@ update_requested_years <- function(
 
   end_year <- if (end_year > has_end_year) {
     if (verbose) {
-      print(paste0(
+      msg <- paste0(
         shQuote(temp_call), ": covers years ", has_start_year, "-",
         has_end_year, "; requested end year ", end_year, " was changed to ",
         has_end_year, "."
-      ))
+      )
+      message(msg)
     }
     as.integer(has_end_year)
   } else {

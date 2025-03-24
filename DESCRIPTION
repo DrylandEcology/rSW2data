@@ -1,6 +1,6 @@
 Package: rSW2data
 Title: Input Data Preparation for SOILWAT2 and STEPWAT2 Simulation Experiments
-Version: 0.1.4
+Version: 0.1.5
 Authors@R: c(
   person(
     "Daniel", "Schlaepfer",
@@ -16,8 +16,8 @@ Imports:
     rSW2utils (>= 0.1.0)
 Suggests:
     testthat (>= 3.0.0),
-    spelling,
-    lintr (>= 3.0.0),
+    spelling (>= 2.1.0),
+    lintr (>= 3.2.0),
     covr,
     utils
 Remotes:
@@ -29,4 +29,4 @@ Encoding: UTF-8
 LazyData: true
 Config/testthat/edition: 3
 Language: en-US
-RoxygenNote: 7.1.2
+RoxygenNote: 7.3.2

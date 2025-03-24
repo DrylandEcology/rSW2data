@@ -1,3 +1,10 @@
+# rSW2data v0.1.5
+* `check_depth_table()` now returns a vector of failing sites
+  for each implemented check.
+* Updated package infrastructure and dependency requirements including
+  `yaml` scripts for Github Actions, `lintr`, `spelling`, `roxygen2`.
+
+
 # rSW2data v0.1.4
 * New `reshape_soilproperties_to_long()` and `reshape_soilproperties_to_wide()`
   reshape data frames containing soil properties between wide and (semi-) long

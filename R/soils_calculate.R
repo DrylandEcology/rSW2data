@@ -40,7 +40,10 @@ deduce_complete_soil_texture <- function(
   cns <- colnames(x)
   for (var in var_stxt) {
     if (!(var %in% cns)) {
-      stop(shQuote(var), " is a required column name, but cannot be found.")
+      stop(
+        shQuote(var), " is a required column name, but cannot be found.",
+        call. = FALSE
+      )
     }
   }
 
@@ -50,7 +53,7 @@ deduce_complete_soil_texture <- function(
 
   if (sum(ids_n1) > 0) {
     # Sum of the two non-missing soil texture values
-    tmp_s <- apply(x[ids_n1, var_stxt, drop = FALSE], 1, sum, na.rm = TRUE)
+    tmp_s <- rowSums(x[ids_n1, var_stxt, drop = FALSE], na.rm = TRUE)
 
     # Don't deduce if one missing and the two others sum to <= ignore_le
     tmp_gti <- which(tmp_s > ignore_le)
@@ -170,7 +173,8 @@ set_missing_soils_to_value <- function(
         # nolint start: nonportable_path_linter.
         stop(
           "Argument `horizon` must be either a column name of `x` or ",
-          "a numeric vector indicating soil horizon/layer numbers."
+          "a numeric vector indicating soil horizon/layer numbers.",
+          call. = FALSE
         )
         # nolint end
       }
@@ -182,10 +186,12 @@ set_missing_soils_to_value <- function(
     }
   }
 
+  n_missing <- sum(is_missing)
+
   if (
     verbose &&
-    where %in% c("all", "at_surface") &&
-    (n_missing <- sum(is_missing)) > 0
+      where %in% c("all", "at_surface") &&
+      n_missing > 0L
   ) {
     message(
       "Missing values of variable ", shQuote(variable),
@@ -253,7 +259,8 @@ impute_soils <- function(
       # nolint start: nonportable_path_linter.
       stop(
         shQuote(var),
-        " is a required/requested column name, but cannot be found."
+        " is a required/requested column name, but cannot be found.",
+        call. = FALSE
       )
       # nolint end
     }
@@ -538,7 +545,7 @@ calc_BareSoilEvapCoefs <- function(
     ))
 
     if (length(ids_used) != length(idsls) && method_bad_soils == "stop") {
-      stop("Sites with bad soils.")
+      stop("Sites with bad soils.", call. = FALSE)
     }
 
     if (length(ids_used) == 0) next
@@ -660,8 +667,12 @@ calc_BareSoilEvapCoefs <- function(
 #' )
 #'
 #' @export
-init_soiltemperature <- function(layers_depth, Tsoil_upper, Tsoil_const,
-  depth_Tsoil_const = 990) {
+init_soiltemperature <- function(
+  layers_depth,
+  Tsoil_upper,
+  Tsoil_const,
+  depth_Tsoil_const = 990
+) {
 
   # nolint start: object_usage_linter.
   sl <- c(0, depth_Tsoil_const)

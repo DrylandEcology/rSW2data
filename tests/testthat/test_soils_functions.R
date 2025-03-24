@@ -49,7 +49,7 @@ test_that("add_soil_layer", {
       expect_true(
         all(
           tmp[, ilt + 1] >= xsand[, ilt] & tmp[, ilt + 1] <= xsand[, ilt + 1] |
-          tmp[, ilt + 1] <= xsand[, ilt] & tmp[, ilt + 1] >= xsand[, ilt + 1],
+            tmp[, ilt + 1] <= xsand[, ilt] & tmp[, ilt + 1] >= xsand[, ilt + 1],
           na.rm = TRUE
         )
       )
@@ -69,8 +69,8 @@ test_that("add_soil_layer", {
 
     # Check that sum of exhausted values equals the previous value
     expect_equal(
-      apply(tmp[, (ilt + 1):(ilt + 2)], 1, sum),
-      xtrco[, ilt + 1],
+      rowSums(tmp[, (ilt + 1L):(ilt + 2L)]),
+      xtrco[, ilt + 1L],
       tolerance = sqrt(.Machine[["double.eps"]])
     )
 
@@ -78,9 +78,10 @@ test_that("add_soil_layer", {
     expect_true(
       all(
         is.na(xtrco[, ilt + 1]) |
-        xtrco[, ilt + 1] == 0 |
-        tmp[, ilt + 1] > 0 & tmp[, ilt + 2] > 0 &
-        tmp[, ilt + 1] < xtrco[, ilt + 1] & tmp[, ilt + 2] < xtrco[, ilt + 1]
+          xtrco[, ilt + 1] == 0 |
+          tmp[, ilt + 1] > 0 & tmp[, ilt + 2] > 0 &
+            tmp[, ilt + 1] < xtrco[, ilt + 1] &
+            tmp[, ilt + 2] < xtrco[, ilt + 1]
       )
     )
   }
@@ -133,7 +134,7 @@ test_that("dissolve_soil_layer", {
     } else if (il == N) {
       # Layer to dissolve is deepest and cannot be dissolved
       expect_warning(
-        tmp <- dissolve_soil_layer(
+        tmp <- dissolve_soil_layer( # nolint: implicit_assignment_linter.
           x = xsand,
           target_cm = test_depths[k],
           depths_cm = soil_layers,
@@ -160,7 +161,7 @@ test_that("dissolve_soil_layer", {
       expect_true(
         all(
           tmp[, il] >= xsand[, il] & tmp[, il] <= xsand[, il + 1] |
-          tmp[, il] <= xsand[, il] & tmp[, il] >= xsand[, il + 1],
+            tmp[, il] <= xsand[, il] & tmp[, il] >= xsand[, il + 1],
           na.rm = TRUE
         )
       )
@@ -180,14 +181,14 @@ test_that("dissolve_soil_layer", {
       # Check that sum of exhausted values equals the previous value
       expect_identical(
         tmp[, il],
-        apply(xtrco[, il:(il + 1)], 1, sum)
+        rowSums(xtrco[, il:(il + 1L)])
       )
 
       # Check that exhausted values are larger then previously
       expect_true(
         all(
           is.na(tmp[, il]) |
-          tmp[, il] > xtrco[, il] & tmp[, il] > xtrco[, il + 1]
+            tmp[, il] > xtrco[, il] & tmp[, il] > xtrco[, il + 1L]
         )
       )
     }
