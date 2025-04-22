@@ -380,6 +380,10 @@ estimate_bulkdensity <- function(theta_saturated, gravel_volume) {
 #'     \item "stop" will stop the function with an error;
 #'     \item "pass" will return \code{NA} for the sites with bad inputs.
 #'   }
+#' @param noSoilValue A numeric value or `NA` (default 0). Value used to fill
+#' in output if there are missing soil depth or soil properties.
+#' @param tolerance A numeric value. Used to adjust check if soil property
+#' values are less or equal to `1`.
 #'
 #' @section Notes: Rows of soil input arguments \code{layers_depth},
 #'   \code{sand}, and \code{clay} correspond to sites and columns to soil
@@ -410,15 +414,24 @@ estimate_bulkdensity <- function(theta_saturated, gravel_volume) {
 #' sw_soils2 <- list(
 #'   depth_cm = t(data.frame(
 #'     site1 = c(5, 10, 20),
-#'     site2 = c(5, 10, 15)
+#'     site2 = c(5, 10, 15),
+#'     site3 = c(5, 15, 30),
+#'     site4 = c(5, 10, 15),
+#'     site5 = c(20, 30, NA)
 #'   )),
 #'   sand = t(data.frame(
 #'     site1 = c(0.50, 0.40, 0.30),
-#'     site2 = c(0.25, 0.30, 0.35)
+#'     site2 = c(0.25, 0.30, 0.35),
+#'     site3 = c(1.00, 0.30, 0.00),
+#'     site4 = c(1.25, 1.00, NA),
+#'     site5 = c(0.25, 0.30, 0.35)
 #'   )),
 #'   clay = t(data.frame(
 #'     site1 = c(0.20, 0.20, 0.25),
-#'     site2 = c(0.15, 0.25, 0.25)
+#'     site2 = c(0.15, 0.25, 0.25),
+#'     site3 = c(0.00, 0.25, 1.00),
+#'     site4 = c(0.15, 0.00, 1.00),
+#'     site5 = c(0.15, 0.25, 0.25)
 #'   ))
 #' )
 #'
@@ -426,6 +439,8 @@ estimate_bulkdensity <- function(theta_saturated, gravel_volume) {
 #'   layers_depth = sw_soils2[["depth_cm"]],
 #'   sand = sw_soils2[["sand"]],
 #'   clay = sw_soils2[["clay"]],
+#'   method_bad_soils = "pass",
+#'   noSoilValue = NA
 #' )
 #'
 #' @export
@@ -434,11 +449,13 @@ calc_BareSoilEvapCoefs <- function(
   sand,
   clay,
   depth_max_bs_evap_cm = 15,
-  method_bad_soils = c("stop", "pass")
+  method_bad_soils = c("stop", "pass"),
+  noSoilValue = 0,
+  tolerance = sqrt(.Machine[["double.eps"]])
 ) {
 
   #--- Process inputs
-  depth_max_bs_evap_cm <- depth_max_bs_evap_cm[[1]]
+  depth_max_bs_evap_cm <- depth_max_bs_evap_cm[[1L]]
   stopifnot(
     is.finite(depth_max_bs_evap_cm),
     depth_max_bs_evap_cm >= 0
@@ -446,18 +463,22 @@ calc_BareSoilEvapCoefs <- function(
 
   method_bad_soils <- match.arg(method_bad_soils)
 
+  noSoilValue <- as.numeric(noSoilValue[[1L]])
+
+  onePlusTol <- 1 + tolerance
+
 
   #--- If inputs are not site x layers, then convert them into 1 site x layers
   if (is.null(dim(sand))) {
-    sand <- matrix(sand, nrow = 1, ncol = length(sand))
+    sand <- matrix(sand, nrow = 1L, ncol = length(sand))
   }
   if (is.null(dim(clay))) {
-    clay <- matrix(clay, nrow = 1, ncol = length(clay))
+    clay <- matrix(clay, nrow = 1L, ncol = length(clay))
   }
   if (is.null(dim(layers_depth))) {
     layers_depth <- matrix(
       data = layers_depth,
-      nrow = dim(sand)[[1]],
+      nrow = dim(sand)[[1L]],
       ncol = length(layers_depth),
       byrow = TRUE
     )
@@ -473,54 +494,85 @@ calc_BareSoilEvapCoefs <- function(
 
 
   #--- Prepare outputs
-  res <- array(NA, dim = dim(sand))
+  res <- array(NA_real_, dim = dim(sand))
 
 
   #--- Identify layers and groups of sites with the same profile (soil layers)
-  avail_sl_ids <- apply(layers_depth, 1, paste0, collapse = "x")
+  avail_sl_ids <- apply(layers_depth, 1L, paste0, collapse = "x")
   layer_sets <- unique(avail_sl_ids)
 
 
   #--- Loop through sites with same layer profile and make adjustments
   for (k1 in seq_along(layer_sets)) {
-    idsls <- which(avail_sl_ids == layer_sets[k1])
+    idsls <- which(avail_sl_ids == layer_sets[[k1]])
 
-    if (length(idsls) == 0) next
+    if (length(idsls) == 0L) next
 
     #--- Grab soil properties of current set of soil layers
     ls_ld <- layers_depth[idsls, , drop = FALSE]
     ls_sand <- sand[idsls, , drop = FALSE]
     ls_clay <- clay[idsls, , drop = FALSE]
 
+    n_slyrs0 <- min(
+      if (anyNA(ls_ld[1L, ])) {
+        which(is.na(ls_ld[1L, ]))[[1L]] - 1L
+      } else {
+        ncol(ls_ld)
+      },
+      if (anyNA(ls_sand[1L, ])) {
+        which(is.na(ls_sand[1L, ]))[[1L]] - 1L
+      } else {
+        ncol(ls_sand)
+      },
+      if (anyNA(ls_clay[1L, ])) {
+        which(is.na(ls_clay[1L, ]))[[1L]] - 1L
+      } else {
+        ncol(ls_clay)
+      }
+    )
+    ids_slyrs0 <- seq_len(n_slyrs0)
 
     #--- Soil layers potentially affected by bare-soil evaporation
     n_slyrs <- if (
-      !anyNA(ls_ld) && all(ls_ld[1, ] <= depth_max_bs_evap_cm)
+      !anyNA(ls_ld) && all(ls_ld[1L, ] <= depth_max_bs_evap_cm)
     ) {
       # All layers less deep than depth_max_bs_evap_cm
       ncol(ls_ld)
     } else {
       # No missing values allowed in layers less deep than depth_max_bs_evap_cm
-      tmp <- cumsum(diff(c(0, ls_ld[1, ]))) >= depth_max_bs_evap_cm
+      tmp <- cumsum(diff(c(0, ls_ld[1L, ]))) >= depth_max_bs_evap_cm
       if (any(tmp, na.rm = TRUE)) {
-        which(tmp)[[1]]
+        which(tmp)[[1L]]
       } else {
         # all layers less deep than depth_max_bs_evap_cm
         # -> left set of non-NA
         # but fail if NA mixed in with real depth values
-        tmp2 <- rle(!is.na(ls_ld[1, ]))
-        if (isTRUE(tmp2[["values"]][[1]]) && sum(tmp2[["values"]]) == 1) {
+        tmp2 <- rle(!is.na(ls_ld[1L, ]))
+        if (isTRUE(tmp2[["values"]][[1L]]) && sum(tmp2[["values"]]) == 1) {
           tmp2[["lengths"]][[1]]
         }
       }
     }
 
-    stopifnot(!is.null(n_slyrs), !anyNA(n_slyrs), n_slyrs > 0)
+    if (any(is.null(n_slyrs), anyNA(n_slyrs), n_slyrs == 0L)) {
+      if (method_bad_soils == "stop") {
+        stop("Sites with bad soils.", call. = FALSE)
+      }
+
+      next
+    }
+
     ids_slyrs <- seq_len(n_slyrs)
 
 
     #--- Fail if soil inputs have not enough layers within depth_max_bs_evap_cm
-    stopifnot(ncol(ls_sand) >= length(ids_slyrs))
+    if (ncol(ls_sand) < length(ids_slyrs)) {
+      if (method_bad_soils == "stop") {
+        stop("Sites with bad soils.", call. = FALSE)
+      }
+
+      next
+    }
 
     #--- Subset soil layers to those within depth_max_bs_evap_cm
     ls_sand <- ls_sand[, ids_slyrs, drop = FALSE]
@@ -530,42 +582,49 @@ calc_BareSoilEvapCoefs <- function(
 
     #--- Deal with sites with "bad" soil inputs
     # Check that depths are positive
-    is_good_depth <- ls_ld > 0 & !apply(ls_ld, 1, anyNA)
+    is_good_depth <- ls_ld > 0 & !apply(ls_ld, 1L, anyNA)
 
     # Check that sand, clay, and their sum are within 0-1
-    is_good_sand <- ls_sand >= 0 & ls_sand <= 1 & !apply(ls_sand, 1, anyNA)
-    is_good_clay <- ls_clay >= 0 & ls_clay <= 1 & !apply(ls_clay, 1, anyNA)
-    is_good_sandclay <- ls_sand + ls_clay <= 1
+    is_good_sand <-
+      ls_sand >= 0 & ls_sand <= onePlusTol & !apply(ls_sand, 1L, anyNA)
+
+    is_good_clay <-
+      ls_clay >= 0 & ls_clay <= onePlusTol & !apply(ls_clay, 1L, anyNA)
+
+    is_good_sandclay <- (ls_sand + ls_clay) <= onePlusTol
 
 
-    ids_used <- which(apply(
-      is_good_depth & is_good_sand & is_good_clay & is_good_sandclay,
-      MARGIN = 1,
-      function(x) all(x) && !anyNA(x)
-    ))
+    ids_used <- which(
+      apply(
+        is_good_depth & is_good_sand & is_good_clay & is_good_sandclay,
+        MARGIN = 1L,
+        function(x) all(x) && !anyNA(x)
+      )
+    )
 
     if (length(ids_used) != length(idsls) && method_bad_soils == "stop") {
       stop("Sites with bad soils.", call. = FALSE)
     }
 
-    if (length(ids_used) == 0) next
+    if (length(ids_used) == 0L) next
 
     ls_ld_used <- ls_ld[ids_used, , drop = FALSE]
 
 
     #--- Calculate
-    depth_min_bs_evap <- min(ls_ld_used[, 1], na.rm = TRUE)
+    depth_min_bs_evap <- min(ls_ld_used[, 1L], na.rm = TRUE)
 
     if (depth_min_bs_evap > depth_max_bs_evap_cm) {
       # all good sites have first layer with coeff = 1
-      res[idsls[ids_used], 1] <- 1
-      res[idsls[ids_used], -1] <- 0
+      res[idsls[ids_used], 1L] <- 1
+      res[idsls[ids_used], ids_slyrs0[-1L]] <- 0
+      res[idsls[ids_used], -ids_slyrs0] <- noSoilValue
       next
     }
 
     lyrs_max_bs_evap <- apply(
       X = ls_ld_used,
-      MARGIN = 1,
+      MARGIN = 1L,
       FUN = function(x) {
         xdm <- depth_max_bs_evap_cm - x
         i0 <- abs(xdm) < rSW2_glovars[["tol"]]
@@ -573,14 +632,14 @@ calc_BareSoilEvapCoefs <- function(
           which(i0)
         } else {
           tmp <- which(xdm < 0)
-          if (length(tmp) > 0) tmp[[1]] else length(x)
+          if (length(tmp) > 0) tmp[[1L]] else length(x)
         }
         c(diff(c(0, x))[seq_len(ld)], rep(0L, length(x) - ld))
       }
     )
 
     lyrs_max_bs_evap <- if (is.null(dim(lyrs_max_bs_evap))) {
-      matrix(lyrs_max_bs_evap, ncol = 1)
+      matrix(lyrs_max_bs_evap, ncol = 1L)
     } else {
       t(lyrs_max_bs_evap)
     }
@@ -590,12 +649,13 @@ calc_BareSoilEvapCoefs <- function(
     sand_mean <-
       rowSums(lyrs_max_bs_evap * ls_sand[ids_used, , drop = FALSE]) /
       ldepth_max_bs_evap
+
     clay_mean <-
       rowSums(lyrs_max_bs_evap * ls_clay[ids_used, , drop = FALSE]) /
       ldepth_max_bs_evap
 
     # equation from re-analysis
-    tmp_depth <- 4.1984 + 0.6695 * sand_mean^2 + 168.7603 * clay_mean^2
+    tmp_depth <- 4.1984 + 0.6695 * sand_mean ^ 2 + 168.7603 * clay_mean ^ 2
 
     depth_bs_evap <- pmin(
       pmax(tmp_depth, depth_min_bs_evap),
@@ -604,23 +664,23 @@ calc_BareSoilEvapCoefs <- function(
 
     lyrs_bs_evap0 <- apply(
       X = depth_bs_evap - ls_ld_used,
-      MARGIN = 1,
+      MARGIN = 1L,
       FUN = function(x) {
         i0 <- abs(x) < rSW2_glovars[["tol"]]
         ld <- if (any(i0)) {
           which(i0)
         } else {
           tmp <- which(x < 0)
-          if (length(tmp) > 0) tmp[[1]] else sum(!is.na(x))
+          if (length(tmp) > 0) tmp[[1L]] else sum(!is.na(x))
         }
-        ld0 <- max(0, ld - 1)
+        ld0 <- max(0L, ld - 1L)
 
         c(rep(TRUE, ld0), rep(FALSE, length(x) - ld0))
       }
     )
 
     lyrs_bs_evap0 <- if (is.null(dim(lyrs_bs_evap0))) {
-      matrix(lyrs_bs_evap0, ncol = 1)
+      matrix(lyrs_bs_evap0, ncol = 1L)
     } else {
       t(lyrs_bs_evap0)
     }
@@ -628,13 +688,15 @@ calc_BareSoilEvapCoefs <- function(
     # function made up to match previous cumulative distributions
     tmp_coeff <- 1 - exp(-5 * ls_ld_used / depth_bs_evap)
     tmp_coeff[!lyrs_bs_evap0 | is.na(tmp_coeff)] <- 1
-    tmpc <- apply(cbind(0, tmp_coeff), 1, diff)
-    tmpc <- if (is.null(dim(tmpc))) matrix(tmpc, ncol = 1) else t(tmpc)
-    coeff_bs_evap <- round(tmpc, 4)
+    tmpc <- apply(cbind(0, tmp_coeff), 1L, diff)
+    tmpc <- if (is.null(dim(tmpc))) matrix(tmpc, ncol = 1L) else t(tmpc)
+    coeff_bs_evap <- round(tmpc, 4L)
 
     res[idsls[ids_used], ids_slyrs] <-
       coeff_bs_evap / rowSums(coeff_bs_evap, na.rm = TRUE)
-    res[idsls[ids_used], -ids_slyrs] <- 0
+
+    res[idsls[ids_used], setdiff(ids_slyrs0, ids_slyrs)] <- 0
+    res[idsls[ids_used], -ids_slyrs0] <- noSoilValue
   }
 
   res

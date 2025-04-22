@@ -1,4 +1,5 @@
 # rSW2data v0.1.6-9000
+* `calc_BareSoilEvapCoefs()` gained arguments `"noSoilValue"` and `"tolerance"`.
 
 # rSW2data v0.1.5
 * `check_depth_table()` now returns a vector of failing sites
