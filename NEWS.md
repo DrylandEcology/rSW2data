@@ -1,4 +1,4 @@
-# rSW2data v0.1.6-9000
+# rSW2data v0.1.6
 * `calc_BareSoilEvapCoefs()` gained arguments `"noSoilValue"` and `"tolerance"`.
 
 # rSW2data v0.1.5
