@@ -9,7 +9,9 @@ calc_BareSoilEvapCoefs(
   sand,
   clay,
   depth_max_bs_evap_cm = 15,
-  method_bad_soils = c("stop", "pass")
+  method_bad_soils = c("stop", "pass"),
+  noSoilValue = 0,
+  tolerance = sqrt(.Machine[["double.eps"]])
 )
 }
 \arguments{
@@ -32,6 +34,12 @@ are missing or values out of range: \itemize{
   \item "stop" will stop the function with an error;
   \item "pass" will return \code{NA} for the sites with bad inputs.
 }}
+
+\item{noSoilValue}{A numeric value or `NA` (default 0). Value used to fill
+in output if there are missing soil depth or soil properties.}
+
+\item{tolerance}{A numeric value. Used to adjust check if soil property
+values are less or equal to `1`.}
 }
 \value{
 A numeric matrix with potential bare-soil evaporation coefficients
@@ -72,15 +80,24 @@ calc_BareSoilEvapCoefs(
 sw_soils2 <- list(
   depth_cm = t(data.frame(
     site1 = c(5, 10, 20),
-    site2 = c(5, 10, 15)
+    site2 = c(5, 10, 15),
+    site3 = c(5, 15, 30),
+    site4 = c(5, 10, 15),
+    site5 = c(20, 30, NA)
   )),
   sand = t(data.frame(
     site1 = c(0.50, 0.40, 0.30),
-    site2 = c(0.25, 0.30, 0.35)
+    site2 = c(0.25, 0.30, 0.35),
+    site3 = c(1.00, 0.30, 0.00),
+    site4 = c(1.25, 1.00, NA),
+    site5 = c(0.25, 0.30, 0.35)
   )),
   clay = t(data.frame(
     site1 = c(0.20, 0.20, 0.25),
-    site2 = c(0.15, 0.25, 0.25)
+    site2 = c(0.15, 0.25, 0.25),
+    site3 = c(0.00, 0.25, 1.00),
+    site4 = c(0.15, 0.00, 1.00),
+    site5 = c(0.15, 0.25, 0.25)
   ))
 )
 
@@ -88,6 +105,8 @@ calc_BareSoilEvapCoefs(
   layers_depth = sw_soils2[["depth_cm"]],
   sand = sw_soils2[["sand"]],
   clay = sw_soils2[["clay"]],
+  method_bad_soils = "pass",
+  noSoilValue = NA
 )
 
 }
